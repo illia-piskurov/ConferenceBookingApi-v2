@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using ConferenceBookingApi.DTOs.Bookings;
 using ConferenceBookingApi.Exceptions;
+using ConferenceBookingApi.Mappings;
 using ConferenceBookingApi.Models;
 using ConferenceBookingApi.Repositories.Interfaces;
 using ConferenceBookingApi.Services.Interfaces;
@@ -61,20 +62,11 @@ public class BookingService : IBookingService
 
             await _bookingRepository.AddAsync(booking);
 
-            return new BookingResponseDto
-            {
-                Id = booking.Id,
-                RoomId = room.Id,
-                RoomName = room.Name,
-                StartTime = booking.StartTime,
-                EndTime = booking.EndTime,
-                DurationHours = (booking.EndTime - booking.StartTime).TotalHours,
-                SelectedServices = selectedServices.Select(s => s.Name).ToList(),
-                RoomCost = roomCost,
-                ServicesCost = servicesCost,
-                TotalCost = totalCost,
-                PriceBreakdown = breakdown
-            };
+            var response = booking.ToDto(room);
+            response.RoomCost = roomCost;
+            response.ServicesCost = servicesCost;
+            response.PriceBreakdown = breakdown;
+            return response;
         }
         finally
         {
@@ -89,7 +81,7 @@ public class BookingService : IBookingService
             throw new InvalidBookingTimeException($"Бронювання із ID '{id}' не знайдено.");
 
         var room = await _roomRepository.GetByIdAsync(booking.RoomId);
-        return MapToDto(booking, room);
+        return booking.ToDto(room);
     }
 
     public async Task<IEnumerable<BookingResponseDto>> GetBookingsByRoomAsync(Guid roomId)
@@ -98,7 +90,7 @@ public class BookingService : IBookingService
         if (room is null) throw new RoomNotFoundException(roomId);
 
         var bookings = await _bookingRepository.GetByRoomIdAsync(roomId);
-        return bookings.Select(b => MapToDto(b, room));
+        return bookings.Select(b => b.ToDto(room));
     }
 
     private static void ValidateBookingTime(DateTime start, DateTime end)
@@ -132,19 +124,4 @@ public class BookingService : IBookingService
 
         return selectedServices;
     }
-
-    private static BookingResponseDto MapToDto(Booking booking, Room? room) => new()
-    {
-        Id = booking.Id,
-        RoomId = booking.RoomId,
-        RoomName = room?.Name ?? "Невідомо",
-        StartTime = booking.StartTime,
-        EndTime = booking.EndTime,
-        DurationHours = (booking.EndTime - booking.StartTime).TotalHours,
-        TotalCost = booking.TotalCost,
-        SelectedServices = room?.AvailableServices
-            .Where(s => booking.SelectedServiceIds.Contains(s.Id))
-            .Select(s => s.Name)
-            .ToList() ?? new List<string>()
-    };
 }

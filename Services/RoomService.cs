@@ -1,5 +1,6 @@
 using ConferenceBookingApi.DTOs.Rooms;
 using ConferenceBookingApi.Exceptions;
+using ConferenceBookingApi.Mappings;
 using ConferenceBookingApi.Models;
 using ConferenceBookingApi.Repositories.Interfaces;
 using ConferenceBookingApi.Services.Interfaces;
@@ -20,14 +21,14 @@ public class RoomService : IRoomService
     public async Task<IEnumerable<RoomResponseDto>> GetAllRoomsAsync()
     {
         var rooms = await _roomRepository.GetAllAsync();
-        return rooms.Where(r => !r.IsDeleted).Select(MapToDto);
+        return rooms.Where(r => !r.IsDeleted).Select(r => r.ToDto());
     }
 
     public async Task<RoomResponseDto> GetRoomByIdAsync(Guid id)
     {
         var room = await _roomRepository.GetByIdAsync(id);
         if (room is null || room.IsDeleted) throw new RoomNotFoundException(id);
-        return MapToDto(room);
+        return room.ToDto();
     }
 
     public async Task<RoomResponseDto> CreateRoomAsync(CreateRoomDto dto)
@@ -48,7 +49,7 @@ public class RoomService : IRoomService
         };
 
         await _roomRepository.AddAsync(room);
-        return MapToDto(room);
+        return room.ToDto();
     }
 
     public async Task<RoomResponseDto> UpdateRoomAsync(Guid id, UpdateRoomDto dto)
@@ -67,7 +68,7 @@ public class RoomService : IRoomService
         }).ToList();
 
         await _roomRepository.UpdateAsync(existing);
-        return MapToDto(existing);
+        return existing.ToDto();
     }
 
     public async Task DeleteRoomAsync(Guid id)
@@ -100,20 +101,6 @@ public class RoomService : IRoomService
                 availableRooms.Add(room);
         }
 
-        return availableRooms.Select(MapToDto);
+        return availableRooms.Select(r => r.ToDto());
     }
-
-    private static RoomResponseDto MapToDto(Room room) => new()
-    {
-        Id = room.Id,
-        Name = room.Name,
-        Capacity = room.Capacity,
-        BaseHourlyRate = room.BaseHourlyRate,
-        AvailableServices = room.AvailableServices.Select(s => new ServiceResponseDto
-        {
-            Id = s.Id,
-            Name = s.Name,
-            Price = s.Price
-        }).ToList()
-    };
 }
