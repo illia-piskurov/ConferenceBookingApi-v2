@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using ConferenceBookingApi.DTOs.Bookings;
 using ConferenceBookingApi.Exceptions;
 using ConferenceBookingApi.Models;
@@ -12,7 +13,7 @@ public class BookingService : IBookingService
     private readonly IBookingRepository _bookingRepository;
     private readonly PricingService _pricingService;
 
-    private static readonly SemaphoreSlim _bookingLock = new(1, 1);
+    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> _roomLocks = new();
 
     public BookingService(
         IRoomRepository roomRepository,
@@ -33,7 +34,9 @@ public class BookingService : IBookingService
 
         var selectedServices = GetSelectedServices(room, dto.SelectedServiceIds);
 
-        await _bookingLock.WaitAsync();
+        var roomLock = _roomLocks.GetOrAdd(dto.RoomId, _ => new SemaphoreSlim(1, 1));
+
+        await roomLock.WaitAsync();
         try
         {
             var conflicts = await _bookingRepository.GetOverlappingAsync(
@@ -75,7 +78,7 @@ public class BookingService : IBookingService
         }
         finally
         {
-            _bookingLock.Release();
+            roomLock.Release();
         }
     }
 
