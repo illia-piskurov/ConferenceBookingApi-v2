@@ -82,6 +82,12 @@ public class RoomService : IRoomService
     public async Task<IEnumerable<RoomResponseDto>> SearchAvailableRoomsAsync(
         DateTime start, DateTime end, int capacity)
     {
+        if (capacity <= 0)
+            throw new InvalidBookingTimeException("Місткість залу повинна бути більше 0.");
+
+        if (start >= end)
+            throw new InvalidBookingTimeException("Час початку повинен бути раніше часу закінчення.");
+
         var allRooms = await _roomRepository.GetAllAsync();
 
         var suitableRooms = allRooms.Where(r => !r.IsDeleted && r.Capacity >= capacity);
