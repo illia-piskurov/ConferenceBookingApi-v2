@@ -17,5 +17,5 @@ public class UpdateRoomDto
     [Range(0.01, double.MaxValue)]
     public decimal BaseHourlyRate { get; set; }
 
-    public List<CreateServiceDto> Services { get; set; } = new();
+    public List<UpdateServiceDto> Services { get; set; } = new();
 }

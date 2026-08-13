@@ -60,7 +60,7 @@ public class RoomService : IRoomService
         existing.BaseHourlyRate = dto.BaseHourlyRate;
         existing.AvailableServices = dto.Services.Select(s => new Service
         {
-            Id = Guid.NewGuid(),
+            Id = s.Id.HasValue && s.Id.Value != Guid.Empty ? s.Id.Value : Guid.NewGuid(),
             Name = s.Name,
             Price = s.Price
         }).ToList();
