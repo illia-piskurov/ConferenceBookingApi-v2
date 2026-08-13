@@ -1,4 +1,5 @@
 using ConferenceBookingApi.DTOs.Reports;
+using ConferenceBookingApi.Exceptions;
 using ConferenceBookingApi.Repositories.Interfaces;
 using ConferenceBookingApi.Services.Interfaces;
 
@@ -19,6 +20,8 @@ public class ReportService : IReportService
 
     public async Task<RevenueReportDto> GetRevenueReportAsync(DateTime from, DateTime to)
     {
+        ValidateDateRange(from, to);
+
         var bookings = (await _bookingRepository.GetByDateRangeAsync(from, to)).ToList();
 
         var byDay = bookings
@@ -67,6 +70,8 @@ public class ReportService : IReportService
 
     public async Task<IEnumerable<RoomLoadDto>> GetRoomLoadAsync(DateTime from, DateTime to)
     {
+        ValidateDateRange(from, to);
+
         var rangeBookings = (await _bookingRepository.GetByDateRangeAsync(from, to)).ToList();
         var allRooms = (await _roomRepository.GetAllAsync()).ToList();
 
@@ -95,5 +100,13 @@ public class ReportService : IReportService
                     : 0
             };
         });
+    }
+
+    private static void ValidateDateRange(DateTime from, DateTime to)
+    {
+        if (from >= to)
+        {
+            throw new InvalidBookingTimeException("Початкова дата періоду повинна бути раніше кінцевої дати.");
+        }
     }
 }
