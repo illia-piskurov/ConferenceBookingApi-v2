@@ -20,13 +20,13 @@ public class RoomService : IRoomService
     public async Task<IEnumerable<RoomResponseDto>> GetAllRoomsAsync()
     {
         var rooms = await _roomRepository.GetAllAsync();
-        return rooms.Select(MapToDto);
+        return rooms.Where(r => !r.IsDeleted).Select(MapToDto);
     }
 
     public async Task<RoomResponseDto> GetRoomByIdAsync(Guid id)
     {
         var room = await _roomRepository.GetByIdAsync(id);
-        if (room is null) throw new RoomNotFoundException(id);
+        if (room is null || room.IsDeleted) throw new RoomNotFoundException(id);
         return MapToDto(room);
     }
 
@@ -38,6 +38,7 @@ public class RoomService : IRoomService
             Name = dto.Name,
             Capacity = dto.Capacity,
             BaseHourlyRate = dto.BaseHourlyRate,
+            IsDeleted = false,
             AvailableServices = dto.Services.Select(s => new Service
             {
                 Id = Guid.NewGuid(),
@@ -53,7 +54,7 @@ public class RoomService : IRoomService
     public async Task<RoomResponseDto> UpdateRoomAsync(Guid id, UpdateRoomDto dto)
     {
         var existing = await _roomRepository.GetByIdAsync(id);
-        if (existing is null) throw new RoomNotFoundException(id);
+        if (existing is null || existing.IsDeleted) throw new RoomNotFoundException(id);
 
         existing.Name = dto.Name;
         existing.Capacity = dto.Capacity;
@@ -72,8 +73,10 @@ public class RoomService : IRoomService
     public async Task DeleteRoomAsync(Guid id)
     {
         var existing = await _roomRepository.GetByIdAsync(id);
-        if (existing is null) throw new RoomNotFoundException(id);
-        await _roomRepository.DeleteAsync(id);
+        if (existing is null || existing.IsDeleted) throw new RoomNotFoundException(id);
+
+        existing.IsDeleted = true;
+        await _roomRepository.UpdateAsync(existing);
     }
 
     public async Task<IEnumerable<RoomResponseDto>> SearchAvailableRoomsAsync(
@@ -81,7 +84,7 @@ public class RoomService : IRoomService
     {
         var allRooms = await _roomRepository.GetAllAsync();
 
-        var suitableRooms = allRooms.Where(r => r.Capacity >= capacity);
+        var suitableRooms = allRooms.Where(r => !r.IsDeleted && r.Capacity >= capacity);
 
         var availableRooms = new List<Room>();
         foreach (var room in suitableRooms)

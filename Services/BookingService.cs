@@ -28,7 +28,7 @@ public class BookingService : IBookingService
     public async Task<BookingResponseDto> CreateBookingAsync(CreateBookingDto dto)
     {
         var room = await _roomRepository.GetByIdAsync(dto.RoomId);
-        if (room is null) throw new RoomNotFoundException(dto.RoomId);
+        if (room is null || room.IsDeleted) throw new RoomNotFoundException(dto.RoomId);
 
         ValidateBookingTime(dto.StartTime, dto.EndTime);
 
