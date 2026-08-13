@@ -9,6 +9,8 @@ public class ReportService : IReportService
     private readonly IBookingRepository _bookingRepository;
     private readonly IRoomRepository _roomRepository;
 
+    private const double DailyWorkingHours = 17.0;
+
     public ReportService(IBookingRepository bookingRepository, IRoomRepository roomRepository)
     {
         _bookingRepository = bookingRepository;
@@ -65,19 +67,22 @@ public class ReportService : IReportService
 
     public async Task<IEnumerable<RoomLoadDto>> GetRoomLoadAsync(DateTime from, DateTime to)
     {
-        var allBookings = (await _bookingRepository.GetAllAsync()).ToList();
+        var rangeBookings = (await _bookingRepository.GetByDateRangeAsync(from, to)).ToList();
         var allRooms = (await _roomRepository.GetAllAsync()).ToList();
 
         var totalDays = (to - from).TotalDays;
-        var totalAvailableHoursPerRoom = totalDays * 17;
+        var totalAvailableHoursPerRoom = totalDays * DailyWorkingHours;
 
         return allRooms.Select(room =>
         {
-            var roomBookings = allBookings
-                .Where(b => b.RoomId == room.Id && b.StartTime >= from && b.StartTime < to)
-                .ToList();
+            var roomBookings = rangeBookings.Where(b => b.RoomId == room.Id);
 
-            var bookedHours = roomBookings.Sum(b => (b.EndTime - b.StartTime).TotalHours);
+            var bookedHours = roomBookings.Sum(b =>
+            {
+                var effectiveStart = b.StartTime < from ? from : b.StartTime;
+                var effectiveEnd = b.EndTime > to ? to : b.EndTime;
+                return (effectiveEnd - effectiveStart).TotalHours;
+            });
 
             return new RoomLoadDto
             {

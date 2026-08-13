@@ -36,7 +36,7 @@ public class InMemoryBookingRepository : IBookingRepository
     public Task<IEnumerable<Booking>> GetByDateRangeAsync(DateTime from, DateTime to)
     {
         var bookings = _bookings.Values.Where(b =>
-            b.StartTime >= from && b.StartTime < to);
+            b.StartTime < to && b.EndTime > from);
         return Task.FromResult(bookings);
     }
 }
