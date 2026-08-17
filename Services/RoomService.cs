@@ -1,0 +1,111 @@
+using AutoMapper;
+using ConferenceBookingApi.DTOs.Rooms;
+using ConferenceBookingApi.Exceptions;
+using ConferenceBookingApi.Models;
+using ConferenceBookingApi.Repositories.Interfaces;
+using ConferenceBookingApi.Services.Interfaces;
+
+namespace ConferenceBookingApi.Services;
+
+public class RoomService : IRoomService
+{
+    private readonly IRoomRepository _roomRepository;
+    private readonly IBookingRepository _bookingRepository;
+    private readonly IMapper _mapper;
+
+    public RoomService(
+        IRoomRepository roomRepository,
+        IBookingRepository bookingRepository,
+        IMapper mapper)
+    {
+        _roomRepository = roomRepository;
+        _bookingRepository = bookingRepository;
+        _mapper = mapper;
+    }
+
+    public async Task<IEnumerable<RoomResponseDto>> GetAllRoomsAsync()
+    {
+        var rooms = await _roomRepository.GetAllAsync();
+        return _mapper.Map<IEnumerable<RoomResponseDto>>(rooms.Where(r => !r.IsDeleted));
+    }
+
+    public async Task<RoomResponseDto> GetRoomByIdAsync(Guid id)
+    {
+        var room = await _roomRepository.GetByIdAsync(id);
+        if (room is null || room.IsDeleted) throw new RoomNotFoundException(id);
+        return _mapper.Map<RoomResponseDto>(room);
+    }
+
+    public async Task<RoomResponseDto> CreateRoomAsync(CreateRoomDto dto)
+    {
+        var room = new Room
+        {
+            Id = Guid.NewGuid(),
+            Name = dto.Name,
+            Capacity = dto.Capacity,
+            BaseHourlyRate = dto.BaseHourlyRate,
+            IsDeleted = false,
+            AvailableServices = dto.Services.Select(s => new Service
+            {
+                Id = Guid.NewGuid(),
+                Name = s.Name,
+                Price = s.Price
+            }).ToList()
+        };
+
+        await _roomRepository.AddAsync(room);
+        return _mapper.Map<RoomResponseDto>(room);
+    }
+
+    public async Task<RoomResponseDto> UpdateRoomAsync(Guid id, UpdateRoomDto dto)
+    {
+        var existing = await _roomRepository.GetByIdAsync(id);
+        if (existing is null || existing.IsDeleted) throw new RoomNotFoundException(id);
+
+        existing.Name = dto.Name;
+        existing.Capacity = dto.Capacity;
+        existing.BaseHourlyRate = dto.BaseHourlyRate;
+        existing.AvailableServices = dto.Services.Select(s => new Service
+        {
+            Id = s.Id.HasValue && s.Id.Value != Guid.Empty ? s.Id.Value : Guid.NewGuid(),
+            Name = s.Name,
+            Price = s.Price
+        }).ToList();
+
+        await _roomRepository.UpdateAsync(existing);
+        return _mapper.Map<RoomResponseDto>(existing);
+    }
+
+    public async Task DeleteRoomAsync(Guid id)
+    {
+        var existing = await _roomRepository.GetByIdAsync(id);
+        if (existing is null || existing.IsDeleted) throw new RoomNotFoundException(id);
+
+        existing.IsDeleted = true;
+        await _roomRepository.UpdateAsync(existing);
+    }
+
+    public async Task<IEnumerable<RoomResponseDto>> SearchAvailableRoomsAsync(
+        DateTime start, DateTime end, int capacity)
+    {
+        if (capacity <= 0)
+            throw new InvalidBookingTimeException("Місткість залу повинна бути більше 0.");
+
+        if (start >= end)
+            throw new InvalidBookingTimeException("Час початку повинен бути раніше часу закінчення.");
+
+        var allRooms = await _roomRepository.GetAllAsync();
+
+        var suitableRooms = allRooms.Where(r => !r.IsDeleted && r.Capacity >= capacity);
+
+        var availableRooms = new List<Room>();
+        foreach (var room in suitableRooms)
+        {
+            var conflicts = await _bookingRepository.GetOverlappingAsync(room.Id, start, end);
+            if (!conflicts.Any())
+                availableRooms.Add(room);
+        }
+
+        return _mapper.Map<IEnumerable<RoomResponseDto>>(availableRooms);
+    }
+}
