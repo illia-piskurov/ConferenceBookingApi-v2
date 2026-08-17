@@ -1,5 +1,3 @@
 namespace ConferenceBookingApi.Exceptions;
 
-public class InvalidBookingTimeException(string message) : Exception
-{
-}
+public class InvalidBookingTimeException(string message) : Exception(message) {}
