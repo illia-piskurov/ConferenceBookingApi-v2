@@ -1,3 +1,4 @@
+using ConferenceBookingApi.Mappings;
 using ConferenceBookingApi.Repositories;
 using ConferenceBookingApi.Repositories.Interfaces;
 using ConferenceBookingApi.Services;
@@ -9,6 +10,8 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
+
         services.AddSingleton<IRoomRepository, InMemoryRoomRepository>();
         services.AddSingleton<IBookingRepository, InMemoryBookingRepository>();
 

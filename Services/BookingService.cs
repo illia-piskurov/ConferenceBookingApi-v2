@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
+using AutoMapper;
 using ConferenceBookingApi.DTOs.Bookings;
 using ConferenceBookingApi.Exceptions;
-using ConferenceBookingApi.Mappings;
 using ConferenceBookingApi.Models;
 using ConferenceBookingApi.Repositories.Interfaces;
 using ConferenceBookingApi.Services.Interfaces;
@@ -13,17 +13,20 @@ public class BookingService : IBookingService
     private readonly IRoomRepository _roomRepository;
     private readonly IBookingRepository _bookingRepository;
     private readonly IPricingService _pricingService;
+    private readonly IMapper _mapper;
 
     private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> _roomLocks = new();
 
     public BookingService(
         IRoomRepository roomRepository,
         IBookingRepository bookingRepository,
-        IPricingService pricingService)
+        IPricingService pricingService,
+        IMapper mapper)
     {
         _roomRepository = roomRepository;
         _bookingRepository = bookingRepository;
         _pricingService = pricingService;
+        _mapper = mapper;
     }
 
     public async Task<BookingResponseDto> CreateBookingAsync(CreateBookingDto dto)
@@ -61,7 +64,7 @@ public class BookingService : IBookingService
 
             await _bookingRepository.AddAsync(booking);
 
-            var response = booking.ToDto(room);
+            var response = _mapper.Map<BookingResponseDto>((booking, room));
             response.RoomCost = pricing.RoomCost;
             response.ServicesCost = pricing.ServicesCost;
             response.PriceBreakdown = pricing.Breakdown;
@@ -80,7 +83,7 @@ public class BookingService : IBookingService
             throw new InvalidBookingTimeException($"Бронювання із ID '{id}' не знайдено.");
 
         var room = await _roomRepository.GetByIdAsync(booking.RoomId);
-        return booking.ToDto(room);
+        return _mapper.Map<BookingResponseDto>((booking, room));
     }
 
     public async Task<IEnumerable<BookingResponseDto>> GetBookingsByRoomAsync(Guid roomId)
@@ -89,7 +92,7 @@ public class BookingService : IBookingService
         if (room is null) throw new RoomNotFoundException(roomId);
 
         var bookings = await _bookingRepository.GetByRoomIdAsync(roomId);
-        return bookings.Select(b => b.ToDto(room));
+        return _mapper.Map<IEnumerable<BookingResponseDto>>(bookings.Select(b => (b, room)));
     }
 
     private static void ValidateBookingTime(DateTime start, DateTime end)

@@ -1,6 +1,6 @@
+using AutoMapper;
 using ConferenceBookingApi.DTOs.Rooms;
 using ConferenceBookingApi.Exceptions;
-using ConferenceBookingApi.Mappings;
 using ConferenceBookingApi.Models;
 using ConferenceBookingApi.Repositories.Interfaces;
 using ConferenceBookingApi.Services.Interfaces;
@@ -11,24 +11,29 @@ public class RoomService : IRoomService
 {
     private readonly IRoomRepository _roomRepository;
     private readonly IBookingRepository _bookingRepository;
+    private readonly IMapper _mapper;
 
-    public RoomService(IRoomRepository roomRepository, IBookingRepository bookingRepository)
+    public RoomService(
+        IRoomRepository roomRepository,
+        IBookingRepository bookingRepository,
+        IMapper mapper)
     {
         _roomRepository = roomRepository;
         _bookingRepository = bookingRepository;
+        _mapper = mapper;
     }
 
     public async Task<IEnumerable<RoomResponseDto>> GetAllRoomsAsync()
     {
         var rooms = await _roomRepository.GetAllAsync();
-        return rooms.Where(r => !r.IsDeleted).Select(r => r.ToDto());
+        return _mapper.Map<IEnumerable<RoomResponseDto>>(rooms.Where(r => !r.IsDeleted));
     }
 
     public async Task<RoomResponseDto> GetRoomByIdAsync(Guid id)
     {
         var room = await _roomRepository.GetByIdAsync(id);
         if (room is null || room.IsDeleted) throw new RoomNotFoundException(id);
-        return room.ToDto();
+        return _mapper.Map<RoomResponseDto>(room);
     }
 
     public async Task<RoomResponseDto> CreateRoomAsync(CreateRoomDto dto)
@@ -49,7 +54,7 @@ public class RoomService : IRoomService
         };
 
         await _roomRepository.AddAsync(room);
-        return room.ToDto();
+        return _mapper.Map<RoomResponseDto>(room);
     }
 
     public async Task<RoomResponseDto> UpdateRoomAsync(Guid id, UpdateRoomDto dto)
@@ -68,7 +73,7 @@ public class RoomService : IRoomService
         }).ToList();
 
         await _roomRepository.UpdateAsync(existing);
-        return existing.ToDto();
+        return _mapper.Map<RoomResponseDto>(existing);
     }
 
     public async Task DeleteRoomAsync(Guid id)
@@ -101,6 +106,6 @@ public class RoomService : IRoomService
                 availableRooms.Add(room);
         }
 
-        return availableRooms.Select(r => r.ToDto());
+        return _mapper.Map<IEnumerable<RoomResponseDto>>(availableRooms);
     }
 }
