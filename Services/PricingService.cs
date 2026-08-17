@@ -1,9 +1,10 @@
 using ConferenceBookingApi.DTOs.Bookings;
 using ConferenceBookingApi.Models;
+using ConferenceBookingApi.Services.Interfaces;
 
 namespace ConferenceBookingApi.Services;
 
-public class PricingService
+public class PricingService : IPricingService
 {
     private static readonly List<(string Name, TimeOnly Start, TimeOnly End, decimal Multiplier)> PriceZones =
     [
@@ -14,8 +15,7 @@ public class PricingService
         ("Вечірня знижка",   new TimeOnly(18, 0), new TimeOnly(23, 0), 0.80m),
     ];
 
-    public (decimal RoomCost, decimal ServicesCost, decimal TotalCost, List<PriceBreakdownItemDto> Breakdown)
-        Calculate(Room room, DateTime startTime, DateTime endTime, List<Service> selectedServices)
+    public PricingResultDto Calculate(Room room, DateTime startTime, DateTime endTime, List<Service> selectedServices)
     {
         var breakdown = new List<PriceBreakdownItemDto>();
         decimal roomCost = 0;
@@ -60,6 +60,12 @@ public class PricingService
         decimal servicesCost = selectedServices.Sum(s => s.Price);
         decimal totalCost = roomCost + servicesCost;
 
-        return (roomCost, servicesCost, totalCost, breakdown);
+        return new PricingResultDto
+        {
+            RoomCost = roomCost,
+            ServicesCost = servicesCost,
+            TotalCost = totalCost,
+            Breakdown = breakdown
+        };
     }
 }

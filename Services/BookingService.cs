@@ -12,14 +12,14 @@ public class BookingService : IBookingService
 {
     private readonly IRoomRepository _roomRepository;
     private readonly IBookingRepository _bookingRepository;
-    private readonly PricingService _pricingService;
+    private readonly IPricingService _pricingService;
 
     private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> _roomLocks = new();
 
     public BookingService(
         IRoomRepository roomRepository,
         IBookingRepository bookingRepository,
-        PricingService pricingService)
+        IPricingService pricingService)
     {
         _roomRepository = roomRepository;
         _bookingRepository = bookingRepository;
@@ -46,8 +46,7 @@ public class BookingService : IBookingService
             if (conflicts.Any())
                 throw new BookingConflictException(dto.RoomId, dto.StartTime, dto.EndTime);
 
-            var (roomCost, servicesCost, totalCost, breakdown) =
-                _pricingService.Calculate(room, dto.StartTime, dto.EndTime, selectedServices);
+            var pricing = _pricingService.Calculate(room, dto.StartTime, dto.EndTime, selectedServices);
 
             var booking = new Booking
             {
@@ -56,16 +55,16 @@ public class BookingService : IBookingService
                 StartTime = dto.StartTime,
                 EndTime = dto.EndTime,
                 SelectedServiceIds = dto.SelectedServiceIds,
-                TotalCost = totalCost,
+                TotalCost = pricing.TotalCost,
                 CreatedAt = DateTime.UtcNow
             };
 
             await _bookingRepository.AddAsync(booking);
 
             var response = booking.ToDto(room);
-            response.RoomCost = roomCost;
-            response.ServicesCost = servicesCost;
-            response.PriceBreakdown = breakdown;
+            response.RoomCost = pricing.RoomCost;
+            response.ServicesCost = pricing.ServicesCost;
+            response.PriceBreakdown = pricing.Breakdown;
             return response;
         }
         finally
