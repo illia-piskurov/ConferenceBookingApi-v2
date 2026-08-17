@@ -1,6 +1,7 @@
 using ConferenceBookingApi.Data;
 using ConferenceBookingApi.Extensions;
 using ConferenceBookingApi.Middleware;
+using ConferenceBookingApi.Repositories.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +42,10 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 
-await DataSeeder.SeedAsync(app.Services);
+using (var scope = app.Services.CreateScope())
+{
+    var roomRepository = scope.ServiceProvider.GetRequiredService<IRoomRepository>();
+    await DataSeeder.SeedAsync(roomRepository);
+}
 
 app.Run();

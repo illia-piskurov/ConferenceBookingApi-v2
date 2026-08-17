@@ -5,10 +5,8 @@ namespace ConferenceBookingApi.Data;
 
 public static class DataSeeder
 {
-    public static async Task SeedAsync(IServiceProvider serviceProvider)
+    public static async Task SeedAsync(IRoomRepository roomRepository)
     {
-        var roomRepository = serviceProvider.GetRequiredService<IRoomRepository>();
-
         var projector = new Service { Id = Guid.NewGuid(), Name = "Проєктор", Price = 500 };
         var wifi      = new Service { Id = Guid.NewGuid(), Name = "Wi-Fi",    Price = 300 };
         var sound     = new Service { Id = Guid.NewGuid(), Name = "Звук",     Price = 700 };
