@@ -1,6 +1,6 @@
 using ConferenceBookingApi.Models;
 
-namespace ConferenceBookingApi.Repositories.Interfaces;
+namespace ConferenceBookingApi.Data.Repositories.Interfaces;
 
 public interface IRoomRepository
 {

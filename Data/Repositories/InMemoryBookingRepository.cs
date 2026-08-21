@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
+using ConferenceBookingApi.Data.Repositories.Interfaces;
 using ConferenceBookingApi.Models;
-using ConferenceBookingApi.Repositories.Interfaces;
 
-namespace ConferenceBookingApi.Repositories;
+namespace ConferenceBookingApi.Data.Repositories;
 
 public class InMemoryBookingRepository : IBookingRepository
 {

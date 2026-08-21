@@ -1,6 +1,6 @@
+using ConferenceBookingApi.Data.Repositories;
+using ConferenceBookingApi.Data.Repositories.Interfaces;
 using ConferenceBookingApi.Mappings;
-using ConferenceBookingApi.Repositories;
-using ConferenceBookingApi.Repositories.Interfaces;
 using ConferenceBookingApi.Services;
 using ConferenceBookingApi.Services.Interfaces;
 

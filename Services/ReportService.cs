@@ -1,6 +1,6 @@
+using ConferenceBookingApi.Data.Repositories.Interfaces;
 using ConferenceBookingApi.DTOs.Reports;
 using ConferenceBookingApi.Exceptions;
-using ConferenceBookingApi.Repositories.Interfaces;
 using ConferenceBookingApi.Services.Interfaces;
 
 namespace ConferenceBookingApi.Services;

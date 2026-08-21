@@ -1,8 +1,8 @@
 using AutoMapper;
+using ConferenceBookingApi.Data.Repositories.Interfaces;
 using ConferenceBookingApi.DTOs.Rooms;
 using ConferenceBookingApi.Exceptions;
 using ConferenceBookingApi.Models;
-using ConferenceBookingApi.Repositories.Interfaces;
 using ConferenceBookingApi.Services.Interfaces;
 
 namespace ConferenceBookingApi.Services;

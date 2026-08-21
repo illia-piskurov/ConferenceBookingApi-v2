@@ -1,5 +1,5 @@
+using ConferenceBookingApi.Data.Repositories.Interfaces;
 using ConferenceBookingApi.Models;
-using ConferenceBookingApi.Repositories.Interfaces;
 
 namespace ConferenceBookingApi.Data;
 

@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
 using AutoMapper;
+using ConferenceBookingApi.Data.Repositories.Interfaces;
 using ConferenceBookingApi.DTOs.Bookings;
 using ConferenceBookingApi.Exceptions;
 using ConferenceBookingApi.Models;
-using ConferenceBookingApi.Repositories.Interfaces;
 using ConferenceBookingApi.Services.Interfaces;
 
 namespace ConferenceBookingApi.Services;

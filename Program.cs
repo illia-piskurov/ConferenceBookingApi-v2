@@ -1,7 +1,7 @@
 using ConferenceBookingApi.Data;
+using ConferenceBookingApi.Data.Repositories.Interfaces;
 using ConferenceBookingApi.Extensions;
 using ConferenceBookingApi.Middleware;
-using ConferenceBookingApi.Repositories.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
