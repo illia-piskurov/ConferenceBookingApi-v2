@@ -1,3 +1,9 @@
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'IPiskurovSchema')
+BEGIN
+    EXEC('CREATE SCHEMA IPiskurovSchema');
+END
+GO
+
 CREATE TABLE IPiskurovSchema.Rooms
 (
     Id UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Rooms_Id DEFAULT NEWSEQUENTIALID(),
@@ -63,3 +69,10 @@ CREATE TABLE IPiskurovSchema.BookingServices
 
     INDEX IX_BookingServices_ServiceId NONCLUSTERED (ServiceId)
 );
+
+-- For Stored Procedures
+CREATE TYPE IPiskurovSchema.GuidListType AS TABLE
+(
+    Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY
+);
+GO
