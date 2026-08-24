@@ -22,9 +22,14 @@ builder.Services.AddSwaggerGen(options =>
     options.IncludeXmlComments(xmlPath);
 });
 
-builder.Services.AddApplicationServices();
+builder.Services.AddApplicationServices(builder.Configuration);
 
 var app = builder.Build();
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
+
+DatabaseMigrator.MigrateDatabase(connectionString);
 
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
@@ -41,11 +46,5 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
-
-using (var scope = app.Services.CreateScope())
-{
-    var roomRepository = scope.ServiceProvider.GetRequiredService<IRoomRepository>();
-    await DataSeeder.SeedAsync(roomRepository);
-}
 
 app.Run();

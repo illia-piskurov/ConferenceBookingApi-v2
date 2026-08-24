@@ -3,7 +3,7 @@ using ConferenceBookingApi.Models;
 
 namespace ConferenceBookingApi.Data;
 
-public static class DataSeeder
+public static class InMemoryDataSeeder
 {
     public static async Task SeedAsync(IRoomRepository roomRepository)
     {

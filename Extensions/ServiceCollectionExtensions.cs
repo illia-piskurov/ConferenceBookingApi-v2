@@ -1,3 +1,4 @@
+using ConferenceBookingApi.Data;
 using ConferenceBookingApi.Data.Repositories;
 using ConferenceBookingApi.Data.Repositories.Interfaces;
 using ConferenceBookingApi.Mappings;
@@ -8,12 +9,17 @@ namespace ConferenceBookingApi.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
 
-        services.AddSingleton<IRoomRepository, InMemoryRoomRepository>();
-        services.AddSingleton<IBookingRepository, InMemoryBookingRepository>();
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
+
+        services.AddSingleton<IDbConnectionFactory>(_ => new SqlConnectionFactory(connectionString));
+
+        services.AddScoped<IRoomRepository, SqlRoomRepository>();
+        services.AddScoped<IBookingRepository, SqlBookingRepository>();
 
         services.AddScoped<IRoomService, RoomService>();
         services.AddScoped<IBookingService, BookingService>();
