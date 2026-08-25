@@ -1,0 +1,125 @@
+@HostAddress = http://localhost:5280
+@RoomA_Id = aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+@RoomB_Id = bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb
+@RoomC_Id = cccccccc-cccc-cccc-cccc-cccccccccccc
+@Projector_Id = 11111111-1111-1111-1111-111111111111
+@Wifi_Id = 22222222-2222-2222-2222-222222222222
+@Sound_Id = 33333333-3333-3333-3333-333333333333
+
+### ====================================================================
+### 1. ROOMS API (Зали)
+### ====================================================================
+
+### 1.1 Отримати список усіх залів
+GET {{HostAddress}}/api/rooms
+Accept: application/json
+
+### 1.2 Отримати зал за ID (Зал А)
+GET {{HostAddress}}/api/rooms/{{RoomA_Id}}
+Accept: application/json
+
+### 1.3 Пошук доступних залів за часом та місткістю
+GET {{HostAddress}}/api/rooms/available?start=2026-09-01T09:00:00Z&end=2026-09-01T12:00:00Z&capacity=30
+Accept: application/json
+
+### 1.4 Створити новий конференц-зал
+POST {{HostAddress}}/api/rooms
+Content-Type: application/json
+
+{
+  "name": "Зал VIP (Панорама)",
+  "capacity": 25,
+  "baseHourlyRate": 4500.00,
+  "availableServices": [
+    {
+      "name": "Проєктор 4K",
+      "price": 800.00
+    },
+    {
+      "name": "Синхронний переклад",
+      "price": 1500.00
+    }
+  ]
+}
+
+### 1.5 Оновити існуючий зал
+PUT {{HostAddress}}/api/rooms/{{RoomC_Id}}
+Content-Type: application/json
+
+{
+  "name": "Зал C (Оновлений)",
+  "capacity": 40,
+  "baseHourlyRate": 1800.00,
+  "availableServices": [
+    {
+      "id": "{{Projector_Id}}",
+      "name": "Проєктор",
+      "price": 550.00
+    },
+    {
+      "id": "{{Wifi_Id}}",
+      "name": "Швидкісний Wi-Fi",
+      "price": 350.00
+    }
+  ]
+}
+
+### 1.6 Видалити зал (Soft Delete)
+DELETE {{HostAddress}}/api/rooms/{{RoomC_Id}}
+
+
+### ====================================================================
+### 2. BOOKINGS API (Бронювання)
+### ====================================================================
+
+### 2.1 Створити нове бронювання (Зал А з проектором і звуком)
+# @name createBooking
+POST {{HostAddress}}/api/bookings
+Content-Type: application/json
+
+{
+  "roomId": "{{RoomA_Id}}",
+  "startTime": "2026-09-10T10:00:00Z",
+  "endTime": "2026-09-10T14:00:00Z",
+  "selectedServiceIds": [
+    "{{Projector_Id}}",
+    "{{Sound_Id}}"
+  ]
+}
+
+### 2.2 Спроба створити конфліктне бронювання на той самий час (Повинно повернути 409 Conflict)
+POST {{HostAddress}}/api/bookings
+Content-Type: application/json
+
+{
+  "roomId": "{{RoomA_Id}}",
+  "startTime": "2026-09-10T11:00:00Z",
+  "endTime": "2026-09-10T13:00:00Z",
+  "selectedServiceIds": []
+}
+
+### 2.3 Отримати деталі бронювання за ID
+@CreatedBookingId = {{createBooking.response.body.id}}
+GET {{HostAddress}}/api/bookings/{{CreatedBookingId}}
+Accept: application/json
+
+### 2.4 Отримати всі бронювання для конкретного залу (Зал А)
+GET {{HostAddress}}/api/bookings/room/{{RoomA_Id}}
+Accept: application/json
+
+
+### ====================================================================
+### 3. REPORTS API (Аналітика та Звіти)
+### ====================================================================
+
+### 3.1 Звіт про доходи за період
+GET {{HostAddress}}/api/reports/revenue?from=2026-08-01T00:00:00Z&to=2026-10-01T23:59:59Z
+Accept: application/json
+
+### 3.2 Рейтинг залів за популярністю
+GET {{HostAddress}}/api/reports/popularity
+Accept: application/json
+
+### 3.3 Завантаженість залів за період
+GET {{HostAddress}}/api/reports/load?from=2026-09-01T00:00:00Z&to=2026-09-30T23:59:59Z
+Accept: application/json

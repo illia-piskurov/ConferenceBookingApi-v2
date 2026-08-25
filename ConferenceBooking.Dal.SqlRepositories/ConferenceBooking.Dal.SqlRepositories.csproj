@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ConferenceBooking.Bll.Common\ConferenceBooking.Bll.Common.csproj" />
+    <ProjectReference Include="..\ConferenceBooking.Utils.DbUp\ConferenceBooking.Utils.DbUp.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="16.2.0" />
+    <PackageReference Include="Azure.Identity" Version="1.21.0" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.4" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.3" />
+
+    <EmbeddedResource Include="Scripts\**\*.sql" />
+  </ItemGroup>
+
+</Project>
