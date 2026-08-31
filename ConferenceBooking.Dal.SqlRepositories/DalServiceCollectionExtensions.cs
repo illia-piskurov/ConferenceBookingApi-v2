@@ -1,6 +1,7 @@
 using ConferenceBooking.Bll.Common.Bookings;
 using ConferenceBooking.Bll.Common.Rooms;
 using ConferenceBooking.Dal.SqlRepositories.Bookings;
+using ConferenceBooking.Dal.SqlRepositories.Configuration;
 using ConferenceBooking.Dal.SqlRepositories.Connection;
 using ConferenceBooking.Dal.SqlRepositories.Mapping;
 using ConferenceBooking.Dal.SqlRepositories.Rooms;
@@ -16,9 +17,13 @@ public static class DalServiceCollectionExtensions
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
 
+        var schema = configuration[$"{SqlDatabaseOptions.SectionName}:Schema"] ?? "dbo";
+        var databaseOptions = new SqlDatabaseOptions { Schema = schema };
+
+        services.AddSingleton(databaseOptions);
         services.AddAutoMapper(cfg => cfg.AddProfile<DalMappingProfile>());
 
-        services.AddSingleton<IDbConnectionFactory>(_ => new SqlConnectionFactory(connectionString));
+        services.AddSingleton<IDbConnectionFactory>(_ => new SqlConnectionFactory(connectionString, databaseOptions));
 
         services.AddScoped<IRoomRepository, SqlRoomRepository>();
         services.AddScoped<IBookingRepository, SqlBookingRepository>();

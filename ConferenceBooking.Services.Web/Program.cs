@@ -35,7 +35,8 @@ var app = builder.Build();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
 
-SqlDatabaseMigrator.Migrate(connectionString);
+var schema = builder.Configuration.GetValue<string>("DatabaseOptions:Schema") ?? "dbo";
+SqlDatabaseMigrator.Migrate(connectionString, schema);
 
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
