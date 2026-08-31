@@ -37,7 +37,7 @@ public class RoomManager : IRoomManager
             Name = request.Name,
             Capacity = request.Capacity,
             BaseHourlyRate = request.BaseHourlyRate,
-            AvailableServices = request.AvailableServices
+            AvailableServices = request.AvailableServices.ToList()
         };
 
         return await _roomRepository.AddAsync(room);
@@ -50,7 +50,7 @@ public class RoomManager : IRoomManager
         existing.Name = request.Name;
         existing.Capacity = request.Capacity;
         existing.BaseHourlyRate = request.BaseHourlyRate;
-        existing.AvailableServices = request.AvailableServices;
+        existing.AvailableServices = request.AvailableServices.ToList();
 
         return await _roomRepository.UpdateAsync(existing);
     }

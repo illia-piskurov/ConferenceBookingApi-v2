@@ -6,7 +6,7 @@ namespace ConferenceBooking.Bll.Bookings;
 
 public class PricingManager : IPricingManager
 {
-    private static readonly List<(string Name, TimeOnly Start, TimeOnly End, decimal Multiplier)> PriceZones =
+    private static readonly (string Name, TimeOnly Start, TimeOnly End, decimal Multiplier)[] PriceZones =
     [
         ("Ранкова знижка",   new TimeOnly(6, 0),  new TimeOnly(9, 0),  0.90m),
         ("Стандарт (ранок)", new TimeOnly(9, 0),  new TimeOnly(12, 0), 1.00m),
