@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using ConferenceBooking.Bll.Common.Rooms;
 using ConferenceBooking.Bll.Common.Rooms.Models;
 using ConferenceBooking.Dal.SqlRepositories.Connection;
+using ConferenceBooking.Dal.SqlRepositories.Constants;
 using ConferenceBooking.Dal.SqlRepositories.Extensions;
 using ConferenceBooking.Dal.SqlRepositories.Rooms.Entities;
 
@@ -23,7 +24,7 @@ public class SqlRoomRepository : IRoomRepository
     public async Task<IEnumerable<Room>> GetAllAsync()
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync();
-        await using var command = connection.Procedure("sp_Rooms_GetAll");
+        await using var command = connection.Procedure(SqlProcedures.Rooms.GetAll);
         await using var reader = await command.ExecuteReaderAsync();
 
         var rooms = new Dictionary<Guid, Room>();
@@ -60,7 +61,7 @@ public class SqlRoomRepository : IRoomRepository
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync();
         await using var command = connection
-            .Procedure("sp_Rooms_GetById")
+            .Procedure(SqlProcedures.Rooms.GetById)
             .AddParam("@Id", SqlDbType.UniqueIdentifier, id);
 
         await using var reader = await command.ExecuteReaderAsync();
@@ -87,7 +88,7 @@ public class SqlRoomRepository : IRoomRepository
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync();
         await using var command = connection
-            .Procedure("sp_Rooms_Insert")
+            .Procedure(SqlProcedures.Rooms.Insert)
             .AddInputOutputParam("@Id", SqlDbType.UniqueIdentifier, room.Id, out var idParam)
             .AddParam("@Name", SqlDbType.NVarChar, room.Name)
             .AddParam("@Capacity", SqlDbType.Int, room.Capacity)
@@ -104,7 +105,7 @@ public class SqlRoomRepository : IRoomRepository
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync();
         await using var command = connection
-            .Procedure("sp_Rooms_Update")
+            .Procedure(SqlProcedures.Rooms.Update)
             .AddParam("@Id", SqlDbType.UniqueIdentifier, room.Id)
             .AddParam("@Name", SqlDbType.NVarChar, room.Name)
             .AddParam("@Capacity", SqlDbType.Int, room.Capacity)
@@ -119,7 +120,7 @@ public class SqlRoomRepository : IRoomRepository
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync();
         await using var command = connection
-            .Procedure("sp_Rooms_Delete")
+            .Procedure(SqlProcedures.Rooms.Delete)
             .AddParam("@Id", SqlDbType.UniqueIdentifier, id);
 
         await command.ExecuteNonQueryAsync();

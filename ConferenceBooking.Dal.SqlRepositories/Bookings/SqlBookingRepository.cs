@@ -6,6 +6,7 @@ using ConferenceBooking.Bll.Common.Bookings.Models;
 using ConferenceBooking.Bll.Common.Shared.Exceptions;
 using ConferenceBooking.Dal.SqlRepositories.Bookings.Entities;
 using ConferenceBooking.Dal.SqlRepositories.Connection;
+using ConferenceBooking.Dal.SqlRepositories.Constants;
 using ConferenceBooking.Dal.SqlRepositories.Extensions;
 
 namespace ConferenceBooking.Dal.SqlRepositories.Bookings;
@@ -24,7 +25,7 @@ public class SqlBookingRepository : IBookingRepository
     public async Task<IEnumerable<Booking>> GetAllAsync()
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync();
-        await using var command = connection.Procedure("sp_Bookings_GetAll");
+        await using var command = connection.Procedure(SqlProcedures.Bookings.GetAll);
 
         return await ReadBookingsWithServicesAsync(command);
     }
@@ -33,7 +34,7 @@ public class SqlBookingRepository : IBookingRepository
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync();
         await using var command = connection
-            .Procedure("sp_Bookings_GetById")
+            .Procedure(SqlProcedures.Bookings.GetById)
             .AddParam("@Id", SqlDbType.UniqueIdentifier, id);
 
         await using var reader = await command.ExecuteReaderAsync();
@@ -59,7 +60,7 @@ public class SqlBookingRepository : IBookingRepository
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync();
         await using var command = connection
-            .Procedure("sp_Bookings_GetByRoomId")
+            .Procedure(SqlProcedures.Bookings.GetByRoomId)
             .AddParam("@RoomId", SqlDbType.UniqueIdentifier, roomId);
 
         return await ReadBookingsWithServicesAsync(command);
@@ -69,7 +70,7 @@ public class SqlBookingRepository : IBookingRepository
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync();
         await using var command = connection
-            .Procedure("sp_Bookings_GetOverlapping")
+            .Procedure(SqlProcedures.Bookings.GetOverlapping)
             .AddParam("@RoomId", SqlDbType.UniqueIdentifier, roomId)
             .AddParam("@StartTime", SqlDbType.DateTime2, start)
             .AddParam("@EndTime", SqlDbType.DateTime2, end);
@@ -81,7 +82,7 @@ public class SqlBookingRepository : IBookingRepository
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync();
         await using var command = connection
-            .Procedure("sp_Bookings_GetByDateRange")
+            .Procedure(SqlProcedures.Bookings.GetByDateRange)
             .AddParam("@From", SqlDbType.DateTime2, from)
             .AddParam("@To", SqlDbType.DateTime2, to);
 
@@ -92,7 +93,7 @@ public class SqlBookingRepository : IBookingRepository
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync();
         await using var command = connection
-            .Procedure("sp_Bookings_Insert")
+            .Procedure(SqlProcedures.Bookings.Insert)
             .AddInputOutputParam("@Id", SqlDbType.UniqueIdentifier, booking.Id, out var idParam)
             .AddParam("@RoomId", SqlDbType.UniqueIdentifier, booking.RoomId)
             .AddParam("@StartTime", SqlDbType.DateTime2, booking.StartTime)
