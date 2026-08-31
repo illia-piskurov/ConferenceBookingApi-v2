@@ -23,7 +23,13 @@ public class RoomManager : IRoomManager
 
     public async Task<Room> GetRoomByIdAsync(Guid id)
     {
-        return await GetExistingRoomOrThrowAsync(id);
+        var room = await _roomRepository.GetByIdAsync(id);
+        if (room is null || room.IsDeleted)
+        {
+            throw new RoomNotFoundException(id);
+        }
+
+        return room;
     }
 
     public async Task<Room> CreateRoomAsync(Room room)
@@ -34,7 +40,7 @@ public class RoomManager : IRoomManager
 
     public async Task<Room> UpdateRoomAsync(Guid id, Room room)
     {
-        await GetExistingRoomOrThrowAsync(id);
+        await GetRoomByIdAsync(id);
         ValidateRoom(room);
 
         room.Id = id;
@@ -43,7 +49,7 @@ public class RoomManager : IRoomManager
 
     public async Task DeleteRoomAsync(Guid id)
     {
-        await GetExistingRoomOrThrowAsync(id);
+        await GetRoomByIdAsync(id);
         await _roomRepository.DeleteAsync(id);
     }
 
@@ -62,17 +68,6 @@ public class RoomManager : IRoomManager
         var bookedRoomIds = overlappingBookings.Select(b => b.RoomId).ToHashSet();
 
         return matchingRooms.Where(r => !bookedRoomIds.Contains(r.Id));
-    }
-
-    private async Task<Room> GetExistingRoomOrThrowAsync(Guid id)
-    {
-        var room = await _roomRepository.GetByIdAsync(id);
-        if (room is null || room.IsDeleted)
-        {
-            throw new RoomNotFoundException(id);
-        }
-
-        return room;
     }
 
     private static void ValidateRoom(Room room)
