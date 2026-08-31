@@ -15,7 +15,7 @@ public class PricingManager : IPricingManager
         ("Вечірня знижка",   new TimeOnly(18, 0), new TimeOnly(23, 0), 0.80m),
     ];
 
-    public PricingResult Calculate(Room room, DateTime startTime, DateTime endTime, List<Service> selectedServices)
+    public PricingResult Calculate(Room room, DateTime startTime, DateTime endTime, IEnumerable<Service> selectedServices)
     {
         var breakdown = new List<PriceBreakdownItem>();
         decimal roomCost = 0;

@@ -22,13 +22,14 @@ public class BookingManager : IBookingManager
         _pricingManager = pricingManager;
     }
 
-    public async Task<BookingDetails> CreateBookingAsync(Guid roomId, DateTime startTime, DateTime endTime, List<Guid> selectedServiceIds)
+    public async Task<BookingDetails> CreateBookingAsync(Guid roomId, DateTime startTime, DateTime endTime, IEnumerable<Guid> selectedServiceIds)
     {
         var room = await GetExistingRoomOrThrowAsync(roomId);
 
         ValidateBookingTime(startTime, endTime);
 
-        var selectedServices = GetSelectedServices(room, selectedServiceIds);
+        var serviceIdList = selectedServiceIds as IReadOnlyCollection<Guid> ?? selectedServiceIds.ToList();
+        var selectedServices = GetSelectedServices(room, serviceIdList);
 
         var conflicts = await _bookingRepository.GetOverlappingAsync(roomId, startTime, endTime);
         if (conflicts.Any())
@@ -44,7 +45,7 @@ public class BookingManager : IBookingManager
             RoomId = roomId,
             StartTime = startTime,
             EndTime = endTime,
-            SelectedServiceIds = selectedServiceIds,
+            SelectedServiceIds = serviceIdList.ToList(),
             TotalCost = pricing.TotalCost,
             CreatedAt = DateTime.UtcNow
         };
@@ -114,22 +115,21 @@ public class BookingManager : IBookingManager
             throw new InvalidBookingTimeException("Зали доступні з 06:00 до 23:00.");
     }
 
-    private static List<Service> GetSelectedServices(Room room, List<Guid> serviceIds)
+    private static IReadOnlyCollection<Service> GetSelectedServices(Room room, IEnumerable<Guid> serviceIds)
     {
-        var selectedServices = room.AvailableServices
-            .Where(s => serviceIds.Contains(s.Id))
-            .ToList();
+        var requestedIds = serviceIds as IReadOnlyCollection<Guid> ?? serviceIds.ToList();
+        if (requestedIds.Count == 0)
+            return Array.Empty<Service>();
 
-        var unavailableIds = serviceIds
-            .Where(id => !room.AvailableServices.Any(s => s.Id == id))
-            .ToList();
+        var availableServicesMap = room.AvailableServices.ToDictionary(s => s.Id);
+        var unavailableIds = requestedIds.Where(id => !availableServicesMap.ContainsKey(id)).ToList();
 
-        if (unavailableIds.Any())
+        if (unavailableIds.Count > 0)
         {
             throw new InvalidBookingTimeException(
                 $"Послуги {string.Join(", ", unavailableIds)} недоступні у цьому залі.");
         }
 
-        return selectedServices;
+        return requestedIds.Select(id => availableServicesMap[id]).ToList();
     }
 }
