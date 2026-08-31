@@ -3,6 +3,7 @@ using AutoMapper;
 using Microsoft.Data.SqlClient;
 using ConferenceBooking.Bll.Common.Rooms;
 using ConferenceBooking.Bll.Common.Rooms.Models;
+using ConferenceBooking.Bll.Common.Shared.Exceptions;
 using ConferenceBooking.Dal.SqlRepositories.Connection;
 using ConferenceBooking.Dal.SqlRepositories.Constants;
 using ConferenceBooking.Dal.SqlRepositories.Extensions;
@@ -107,7 +108,14 @@ public class SqlRoomRepository : IRoomRepository
             .Procedure(SqlProcedures.Rooms.Delete)
             .AddParam("@Id", SqlDbType.UniqueIdentifier, id);
 
-        await command.ExecuteNonQueryAsync();
+        try
+        {
+            await command.ExecuteNonQueryAsync();
+        }
+        catch (SqlException ex) when (ex.Number == 50002)
+        {
+            throw new RoomHasActiveBookingsException(id);
+        }
     }
 
     private async Task<List<Room>> ReadRoomsWithServicesAsync(SqlCommand command)

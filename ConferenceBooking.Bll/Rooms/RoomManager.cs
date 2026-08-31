@@ -18,10 +18,10 @@ public class RoomManager : IRoomManager
         return await _roomRepository.GetAllAsync();
     }
 
-    public async Task<Room> GetRoomByIdAsync(Guid id)
+    public async Task<Room> GetRoomByIdAsync(Guid id, bool includeDeleted = false)
     {
         var room = await _roomRepository.GetByIdAsync(id);
-        if (room is null || room.IsDeleted)
+        if (room is null || (!includeDeleted && room.IsDeleted))
         {
             throw new RoomNotFoundException(id);
         }

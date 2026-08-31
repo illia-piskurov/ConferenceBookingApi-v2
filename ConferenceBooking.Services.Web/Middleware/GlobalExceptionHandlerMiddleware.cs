@@ -33,12 +33,13 @@ public class GlobalExceptionHandlerMiddleware
     {
         var (statusCode, message) = exception switch
         {
-            RoomNotFoundException ex       => (HttpStatusCode.NotFound, ex.Message),
-            BookingNotFoundException ex    => (HttpStatusCode.NotFound, ex.Message),
-            BookingConflictException ex    => (HttpStatusCode.Conflict, ex.Message),
-            InvalidBookingTimeException ex => (HttpStatusCode.BadRequest, ex.Message),
-            _                              => (HttpStatusCode.InternalServerError,
-                                               "Внутрішня помилка сервера. Спробуйте пізніше.")
+            RoomNotFoundException ex          => (HttpStatusCode.NotFound, ex.Message),
+            BookingNotFoundException ex       => (HttpStatusCode.NotFound, ex.Message),
+            BookingConflictException ex       => (HttpStatusCode.Conflict, ex.Message),
+            RoomHasActiveBookingsException ex => (HttpStatusCode.Conflict, ex.Message),
+            InvalidBookingTimeException ex    => (HttpStatusCode.BadRequest, ex.Message),
+            _                                 => (HttpStatusCode.InternalServerError,
+                                                   "Внутрішня помилка сервера. Спробуйте пізніше.")
         };
 
         context.Response.StatusCode = (int)statusCode;

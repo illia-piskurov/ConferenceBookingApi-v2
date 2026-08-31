@@ -68,7 +68,7 @@ public class BookingManager : IBookingManager
             throw new BookingNotFoundException(id);
         }
 
-        var room = await _roomManager.GetRoomByIdAsync(booking.RoomId);
+        var room = await _roomManager.GetRoomByIdAsync(booking.RoomId, includeDeleted: true);
 
         return new BookingDetails
         {
@@ -79,7 +79,7 @@ public class BookingManager : IBookingManager
 
     public async Task<IEnumerable<BookingDetails>> GetBookingsByRoomAsync(Guid roomId)
     {
-        var room = await _roomManager.GetRoomByIdAsync(roomId);
+        var room = await _roomManager.GetRoomByIdAsync(roomId, includeDeleted: true);
 
         var bookings = await _bookingRepository.GetByRoomIdAsync(roomId);
         return bookings.Select(b => new BookingDetails
