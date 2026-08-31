@@ -9,4 +9,5 @@ public interface IRoomRepository
     Task<Room> AddAsync(Room room);
     Task<Room> UpdateAsync(Room room);
     Task DeleteAsync(Guid id);
+    Task<IEnumerable<Room>> SearchAvailableAsync(DateTime start, DateTime end, int capacity);
 }

@@ -9,6 +9,7 @@ public static class SqlProcedures
         public const string Insert = "sp_Rooms_Insert";
         public const string Update = "sp_Rooms_Update";
         public const string Delete = "sp_Rooms_Delete";
+        public const string SearchAvailable = "sp_Rooms_SearchAvailable";
     }
 
     public static class Bookings

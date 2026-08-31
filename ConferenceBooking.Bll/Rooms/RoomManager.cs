@@ -1,4 +1,3 @@
-using ConferenceBooking.Bll.Common.Bookings;
 using ConferenceBooking.Bll.Common.Rooms;
 using ConferenceBooking.Bll.Common.Rooms.Models;
 using ConferenceBooking.Bll.Common.Shared.Exceptions;
@@ -8,12 +7,10 @@ namespace ConferenceBooking.Bll.Rooms;
 public class RoomManager : IRoomManager
 {
     private readonly IRoomRepository _roomRepository;
-    private readonly IBookingRepository _bookingRepository;
 
-    public RoomManager(IRoomRepository roomRepository, IBookingRepository bookingRepository)
+    public RoomManager(IRoomRepository roomRepository)
     {
         _roomRepository = roomRepository;
-        _bookingRepository = bookingRepository;
     }
 
     public async Task<IEnumerable<Room>> GetAllRoomsAsync()
@@ -58,16 +55,7 @@ public class RoomManager : IRoomManager
         if (start >= end)
             throw new InvalidBookingTimeException("Час початку повинен бути раніше часу закінчення.");
 
-        var allRooms = await _roomRepository.GetAllAsync();
-        var matchingRooms = allRooms.Where(r => r.Capacity >= capacity && !r.IsDeleted).ToList();
-
-        if (matchingRooms.Count == 0)
-            return Enumerable.Empty<Room>();
-
-        var overlappingBookings = await _bookingRepository.GetByDateRangeAsync(start, end);
-        var bookedRoomIds = overlappingBookings.Select(b => b.RoomId).ToHashSet();
-
-        return matchingRooms.Where(r => !bookedRoomIds.Contains(r.Id));
+        return await _roomRepository.SearchAvailableAsync(start, end, capacity);
     }
 
     private static void ValidateRoom(Room room)

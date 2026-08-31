@@ -25,36 +25,20 @@ public class SqlRoomRepository : IRoomRepository
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync();
         await using var command = connection.Procedure(SqlProcedures.Rooms.GetAll);
-        await using var reader = await command.ExecuteReaderAsync();
 
-        var rooms = new Dictionary<Guid, Room>();
+        return await ReadRoomsWithServicesAsync(command);
+    }
 
-        while (await reader.ReadAsync())
-        {
-            var entity = MapRoomEntity(reader);
-            var room = _mapper.Map<Room>(entity);
-            rooms[room.Id] = room;
-        }
+    public async Task<IEnumerable<Room>> SearchAvailableAsync(DateTime start, DateTime end, int capacity)
+    {
+        await using var connection = await _connectionFactory.CreateConnectionAsync();
+        await using var command = connection
+            .Procedure(SqlProcedures.Rooms.SearchAvailable)
+            .AddParam("@StartTime", SqlDbType.DateTime2, start)
+            .AddParam("@EndTime", SqlDbType.DateTime2, end)
+            .AddParam("@Capacity", SqlDbType.Int, capacity);
 
-        if (await reader.NextResultAsync())
-        {
-            while (await reader.ReadAsync())
-            {
-                var roomId = reader.Get<Guid>("RoomId");
-                if (rooms.TryGetValue(roomId, out var room))
-                {
-                    var serviceEntity = new ServiceEntity
-                    {
-                        Id = reader.Get<Guid>("ServiceId"),
-                        Name = reader.Get<string>("Name"),
-                        Price = reader.Get<decimal>("Price")
-                    };
-                    room.AvailableServices.Add(_mapper.Map<Service>(serviceEntity));
-                }
-            }
-        }
-
-        return rooms.Values;
+        return await ReadRoomsWithServicesAsync(command);
     }
 
     public async Task<Room?> GetByIdAsync(Guid id)
@@ -124,6 +108,40 @@ public class SqlRoomRepository : IRoomRepository
             .AddParam("@Id", SqlDbType.UniqueIdentifier, id);
 
         await command.ExecuteNonQueryAsync();
+    }
+
+    private async Task<List<Room>> ReadRoomsWithServicesAsync(SqlCommand command)
+    {
+        await using var reader = await command.ExecuteReaderAsync();
+
+        var rooms = new Dictionary<Guid, Room>();
+
+        while (await reader.ReadAsync())
+        {
+            var entity = MapRoomEntity(reader);
+            var room = _mapper.Map<Room>(entity);
+            rooms[room.Id] = room;
+        }
+
+        if (await reader.NextResultAsync())
+        {
+            while (await reader.ReadAsync())
+            {
+                var roomId = reader.Get<Guid>("RoomId");
+                if (rooms.TryGetValue(roomId, out var room))
+                {
+                    var serviceEntity = new ServiceEntity
+                    {
+                        Id = reader.Get<Guid>("ServiceId"),
+                        Name = reader.Get<string>("Name"),
+                        Price = reader.Get<decimal>("Price")
+                    };
+                    room.AvailableServices.Add(_mapper.Map<Service>(serviceEntity));
+                }
+            }
+        }
+
+        return rooms.Values.ToList();
     }
 
     private static RoomEntity MapRoomEntity(SqlDataReader reader) => new()
