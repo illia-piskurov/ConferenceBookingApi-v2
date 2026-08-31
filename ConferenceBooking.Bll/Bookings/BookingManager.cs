@@ -65,7 +65,7 @@ public class BookingManager : IBookingManager
         var booking = await _bookingRepository.GetByIdAsync(id);
         if (booking is null)
         {
-            throw new InvalidBookingTimeException($"Бронювання із ID '{id}' не знайдено.");
+            throw new BookingNotFoundException(id);
         }
 
         var room = await _roomManager.GetRoomByIdAsync(booking.RoomId);
