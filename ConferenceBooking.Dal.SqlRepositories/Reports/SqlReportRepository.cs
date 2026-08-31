@@ -16,7 +16,7 @@ public class SqlReportRepository : IReportRepository
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<IEnumerable<DailyRevenue>> GetRevenueByDayAsync(DateTime from, DateTime to)
+    public async Task<IReadOnlyList<DailyRevenue>> GetRevenueByDayAsync(DateTime from, DateTime to)
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync();
         await using var command = connection

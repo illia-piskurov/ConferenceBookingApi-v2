@@ -19,7 +19,7 @@ public class ReportManager : IReportManager
     {
         ValidateDateRange(from, to);
 
-        var byDay = (await _reportRepository.GetRevenueByDayAsync(from, to)).ToList();
+        var byDay = await _reportRepository.GetRevenueByDayAsync(from, to);
 
         return new RevenueReport
         {

@@ -6,5 +6,5 @@ public class RevenueReport
     public DateTime To { get; set; }
     public int TotalBookings { get; set; }
     public decimal TotalRevenue { get; set; }
-    public List<DailyRevenue> ByDay { get; set; } = [];
+    public IReadOnlyList<DailyRevenue> ByDay { get; set; } = [];
 }
