@@ -1,9 +1,11 @@
 using ConferenceBooking.Bll.Common.Bookings;
+using ConferenceBooking.Bll.Common.Reports;
 using ConferenceBooking.Bll.Common.Rooms;
 using ConferenceBooking.Dal.SqlRepositories.Bookings;
 using ConferenceBooking.Dal.SqlRepositories.Configuration;
 using ConferenceBooking.Dal.SqlRepositories.Connection;
 using ConferenceBooking.Dal.SqlRepositories.Mapping;
+using ConferenceBooking.Dal.SqlRepositories.Reports;
 using ConferenceBooking.Dal.SqlRepositories.Rooms;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +29,7 @@ public static class DalServiceCollectionExtensions
 
         services.AddScoped<IRoomRepository, SqlRoomRepository>();
         services.AddScoped<IBookingRepository, SqlBookingRepository>();
+        services.AddScoped<IReportRepository, SqlReportRepository>();
 
         return services;
     }

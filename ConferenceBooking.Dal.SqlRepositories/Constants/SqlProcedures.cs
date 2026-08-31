@@ -20,4 +20,11 @@ public static class SqlProcedures
         public const string GetByDateRange = "sp_Bookings_GetByDateRange";
         public const string Insert = "sp_Bookings_Insert";
     }
+
+    public static class Reports
+    {
+        public const string GetRevenue = "sp_Reports_GetRevenue";
+        public const string GetRoomPopularity = "sp_Reports_GetRoomPopularity";
+        public const string GetRoomLoad = "sp_Reports_GetRoomLoad";
+    }
 }
