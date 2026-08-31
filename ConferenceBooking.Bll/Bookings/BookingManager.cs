@@ -24,11 +24,7 @@ public class BookingManager : IBookingManager
 
     public async Task<BookingDetails> CreateBookingAsync(Guid roomId, DateTime startTime, DateTime endTime, List<Guid> selectedServiceIds)
     {
-        var room = await _roomRepository.GetByIdAsync(roomId);
-        if (room is null || room.IsDeleted)
-        {
-            throw new RoomNotFoundException(roomId);
-        }
+        var room = await GetExistingRoomOrThrowAsync(roomId);
 
         ValidateBookingTime(startTime, endTime);
 
@@ -71,11 +67,7 @@ public class BookingManager : IBookingManager
             throw new InvalidBookingTimeException($"Бронювання із ID '{id}' не знайдено.");
         }
 
-        var room = await _roomRepository.GetByIdAsync(booking.RoomId);
-        if (room is null)
-        {
-            throw new RoomNotFoundException(booking.RoomId);
-        }
+        var room = await GetExistingRoomOrThrowAsync(booking.RoomId);
 
         return new BookingDetails
         {
@@ -86,11 +78,7 @@ public class BookingManager : IBookingManager
 
     public async Task<IEnumerable<BookingDetails>> GetBookingsByRoomAsync(Guid roomId)
     {
-        var room = await _roomRepository.GetByIdAsync(roomId);
-        if (room is null)
-        {
-            throw new RoomNotFoundException(roomId);
-        }
+        var room = await GetExistingRoomOrThrowAsync(roomId);
 
         var bookings = await _bookingRepository.GetByRoomIdAsync(roomId);
         return bookings.Select(b => new BookingDetails
@@ -98,6 +86,17 @@ public class BookingManager : IBookingManager
             Booking = b,
             Room = room
         });
+    }
+
+    private async Task<Room> GetExistingRoomOrThrowAsync(Guid roomId)
+    {
+        var room = await _roomRepository.GetByIdAsync(roomId);
+        if (room is null || room.IsDeleted)
+        {
+            throw new RoomNotFoundException(roomId);
+        }
+
+        return room;
     }
 
     private static void ValidateBookingTime(DateTime start, DateTime end)

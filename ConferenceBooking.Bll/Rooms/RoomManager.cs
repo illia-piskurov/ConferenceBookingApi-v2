@@ -23,45 +23,19 @@ public class RoomManager : IRoomManager
 
     public async Task<Room> GetRoomByIdAsync(Guid id)
     {
-        var room = await _roomRepository.GetByIdAsync(id);
-        if (room is null || room.IsDeleted)
-        {
-            throw new RoomNotFoundException(id);
-        }
-
-        return room;
+        return await GetExistingRoomOrThrowAsync(id);
     }
 
     public async Task<Room> CreateRoomAsync(Room room)
     {
-        if (string.IsNullOrWhiteSpace(room.Name))
-            throw new ArgumentException("Назва залу є обов'язковою.", nameof(room.Name));
-
-        if (room.Capacity <= 0)
-            throw new ArgumentException("Місткість повинна бути більшою за 0.", nameof(room.Capacity));
-
-        if (room.BaseHourlyRate < 0)
-            throw new ArgumentException("Погодинна ставка не може бути від'ємною.", nameof(room.BaseHourlyRate));
-
+        ValidateRoom(room);
         return await _roomRepository.AddAsync(room);
     }
 
     public async Task<Room> UpdateRoomAsync(Guid id, Room room)
     {
-        var existing = await _roomRepository.GetByIdAsync(id);
-        if (existing is null || existing.IsDeleted)
-        {
-            throw new RoomNotFoundException(id);
-        }
-
-        if (string.IsNullOrWhiteSpace(room.Name))
-            throw new ArgumentException("Назва залу є обов'язковою.", nameof(room.Name));
-
-        if (room.Capacity <= 0)
-            throw new ArgumentException("Місткість повинна бути більшою за 0.", nameof(room.Capacity));
-
-        if (room.BaseHourlyRate < 0)
-            throw new ArgumentException("Погодинна ставка не може бути від'ємною.", nameof(room.BaseHourlyRate));
+        await GetExistingRoomOrThrowAsync(id);
+        ValidateRoom(room);
 
         room.Id = id;
         return await _roomRepository.UpdateAsync(room);
@@ -69,12 +43,7 @@ public class RoomManager : IRoomManager
 
     public async Task DeleteRoomAsync(Guid id)
     {
-        var existing = await _roomRepository.GetByIdAsync(id);
-        if (existing is null || existing.IsDeleted)
-        {
-            throw new RoomNotFoundException(id);
-        }
-
+        await GetExistingRoomOrThrowAsync(id);
         await _roomRepository.DeleteAsync(id);
     }
 
@@ -84,19 +53,37 @@ public class RoomManager : IRoomManager
             throw new InvalidBookingTimeException("Час початку повинен бути раніше часу закінчення.");
 
         var allRooms = await _roomRepository.GetAllAsync();
-        var matchingRooms = allRooms.Where(r => r.Capacity >= capacity).ToList();
+        var matchingRooms = allRooms.Where(r => r.Capacity >= capacity && !r.IsDeleted).ToList();
 
-        var availableRooms = new List<Room>();
+        if (matchingRooms.Count == 0)
+            return Enumerable.Empty<Room>();
 
-        foreach (var room in matchingRooms)
+        var overlappingBookings = await _bookingRepository.GetByDateRangeAsync(start, end);
+        var bookedRoomIds = overlappingBookings.Select(b => b.RoomId).ToHashSet();
+
+        return matchingRooms.Where(r => !bookedRoomIds.Contains(r.Id));
+    }
+
+    private async Task<Room> GetExistingRoomOrThrowAsync(Guid id)
+    {
+        var room = await _roomRepository.GetByIdAsync(id);
+        if (room is null || room.IsDeleted)
         {
-            var conflicts = await _bookingRepository.GetOverlappingAsync(room.Id, start, end);
-            if (!conflicts.Any())
-            {
-                availableRooms.Add(room);
-            }
+            throw new RoomNotFoundException(id);
         }
 
-        return availableRooms;
+        return room;
+    }
+
+    private static void ValidateRoom(Room room)
+    {
+        if (string.IsNullOrWhiteSpace(room.Name))
+            throw new ArgumentException("Назва залу є обов'язковою.", nameof(room.Name));
+
+        if (room.Capacity <= 0)
+            throw new ArgumentException("Місткість повинна бути більшою за 0.", nameof(room.Capacity));
+
+        if (room.BaseHourlyRate < 0)
+            throw new ArgumentException("Погодинна ставка не може бути від'ємною.", nameof(room.BaseHourlyRate));
     }
 }
