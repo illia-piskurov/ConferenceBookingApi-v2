@@ -29,19 +29,30 @@ public class RoomManager : IRoomManager
         return room;
     }
 
-    public async Task<Room> CreateRoomAsync(Room room)
+    public async Task<Room> CreateRoomAsync(CreateRoomRequest request)
     {
-        ValidateRoom(room);
+        var room = new Room
+        {
+            Id = Guid.NewGuid(),
+            Name = request.Name,
+            Capacity = request.Capacity,
+            BaseHourlyRate = request.BaseHourlyRate,
+            AvailableServices = request.AvailableServices
+        };
+
         return await _roomRepository.AddAsync(room);
     }
 
-    public async Task<Room> UpdateRoomAsync(Guid id, Room room)
+    public async Task<Room> UpdateRoomAsync(Guid id, UpdateRoomRequest request)
     {
-        await GetRoomByIdAsync(id);
-        ValidateRoom(room);
+        var existing = await GetRoomByIdAsync(id);
 
-        room.Id = id;
-        return await _roomRepository.UpdateAsync(room);
+        existing.Name = request.Name;
+        existing.Capacity = request.Capacity;
+        existing.BaseHourlyRate = request.BaseHourlyRate;
+        existing.AvailableServices = request.AvailableServices;
+
+        return await _roomRepository.UpdateAsync(existing);
     }
 
     public async Task DeleteRoomAsync(Guid id)
@@ -56,17 +67,5 @@ public class RoomManager : IRoomManager
             throw new InvalidBookingTimeException("Час початку повинен бути раніше часу закінчення.");
 
         return await _roomRepository.SearchAvailableAsync(start, end, capacity);
-    }
-
-    private static void ValidateRoom(Room room)
-    {
-        if (string.IsNullOrWhiteSpace(room.Name))
-            throw new ArgumentException("Назва залу є обов'язковою.", nameof(room.Name));
-
-        if (room.Capacity <= 0)
-            throw new ArgumentException("Місткість повинна бути більшою за 0.", nameof(room.Capacity));
-
-        if (room.BaseHourlyRate < 0)
-            throw new ArgumentException("Погодинна ставка не може бути від'ємною.", nameof(room.BaseHourlyRate));
     }
 }

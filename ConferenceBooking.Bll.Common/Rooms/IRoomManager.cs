@@ -6,8 +6,8 @@ public interface IRoomManager
 {
     Task<IEnumerable<Room>> GetAllRoomsAsync();
     Task<Room> GetRoomByIdAsync(Guid id);
-    Task<Room> CreateRoomAsync(Room room);
-    Task<Room> UpdateRoomAsync(Guid id, Room room);
+    Task<Room> CreateRoomAsync(CreateRoomRequest request);
+    Task<Room> UpdateRoomAsync(Guid id, UpdateRoomRequest request);
     Task DeleteRoomAsync(Guid id);
     Task<IEnumerable<Room>> SearchAvailableRoomsAsync(DateTime start, DateTime end, int capacity);
 }

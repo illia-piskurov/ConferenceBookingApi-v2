@@ -13,11 +13,11 @@ public class ServicesMappingProfile : Profile
     public ServicesMappingProfile()
     {
         // Rooms
-        CreateMap<CreateRoomDto, Room>()
+        CreateMap<CreateRoomDto, CreateRoomRequest>()
             .ForMember(dest => dest.AvailableServices, opt => opt.MapFrom(src =>
                 src.AvailableServices.Select(s => new Service { Name = s.Name, Price = s.Price })));
 
-        CreateMap<UpdateRoomDto, Room>()
+        CreateMap<UpdateRoomDto, UpdateRoomRequest>()
             .ForMember(dest => dest.AvailableServices, opt => opt.MapFrom(src =>
                 src.AvailableServices.Select(s => new Service { Id = s.Id ?? Guid.Empty, Name = s.Name, Price = s.Price })));
 

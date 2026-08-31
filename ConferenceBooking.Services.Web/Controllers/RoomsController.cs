@@ -51,8 +51,8 @@ public class RoomsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateRoomDto dto)
     {
-        var roomModel = _mapper.Map<Room>(dto);
-        var created = await _roomManager.CreateRoomAsync(roomModel);
+        var request = _mapper.Map<CreateRoomRequest>(dto);
+        var created = await _roomManager.CreateRoomAsync(request);
         var response = _mapper.Map<RoomResponseDto>(created);
         return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
     }
@@ -66,8 +66,8 @@ public class RoomsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateRoomDto dto)
     {
-        var roomModel = _mapper.Map<Room>(dto);
-        var updated = await _roomManager.UpdateRoomAsync(id, roomModel);
+        var request = _mapper.Map<UpdateRoomRequest>(dto);
+        var updated = await _roomManager.UpdateRoomAsync(id, request);
         return Ok(_mapper.Map<RoomResponseDto>(updated));
     }
 
