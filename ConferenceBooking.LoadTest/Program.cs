@@ -18,7 +18,16 @@ internal class Program
         Console.WriteLine("============================================================");
         Console.ResetColor();
 
-        // 1. Обробка CLI аргументів: dotnet run -- [totalRequests] [concurrency] [baseUrl]
+        // 1. Обробка CLI аргументів:
+        //    dotnet run -- benchmark [baseUrl]
+        //    dotnet run -- [totalRequests] [concurrency] [baseUrl]
+        if (args.Length > 0 && (args[0].Equals("benchmark", StringComparison.OrdinalIgnoreCase) || args[0] == "--benchmark" || args[0] == "-b"))
+        {
+            var baseUrl = args.Length >= 2 ? args[1] : DefaultBaseUrl;
+            await RunComparativeBenchmarkAsync(baseUrl);
+            return;
+        }
+
         if (args.Length >= 2 && int.TryParse(args[0], out var totalReq) && int.TryParse(args[1], out var concurrency))
         {
             var baseUrl = args.Length >= 3 ? args[2] : DefaultBaseUrl;
