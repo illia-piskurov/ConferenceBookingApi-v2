@@ -4,7 +4,7 @@ namespace ConferenceBooking.Bll.Common.Reports;
 
 public interface IReportRepository
 {
-    Task<IReadOnlyList<DailyRevenue>> GetRevenueByDayAsync(DateTime from, DateTime to);
-    Task<IEnumerable<RoomPopularity>> GetRoomPopularityAsync();
-    Task<IEnumerable<RoomLoad>> GetRoomLoadRawAsync(DateTime from, DateTime to);
+    Task<IReadOnlyList<DailyRevenue>> GetRevenueByDayAsync(DateTime from, DateTime to, CancellationToken cancellationToken = default);
+    Task<IEnumerable<RoomPopularity>> GetRoomPopularityAsync(CancellationToken cancellationToken = default);
+    Task<IEnumerable<RoomLoad>> GetRoomLoadRawAsync(DateTime from, DateTime to, CancellationToken cancellationToken = default);
 }

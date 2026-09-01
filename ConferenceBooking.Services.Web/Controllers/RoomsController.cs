@@ -25,9 +25,9 @@ public class RoomsController : ControllerBase
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<RoomResponseDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken = default)
     {
-        var rooms = await _roomManager.GetAllRoomsAsync();
+        var rooms = await _roomManager.GetAllRoomsAsync(cancellationToken);
         return Ok(_mapper.Map<IEnumerable<RoomResponseDto>>(rooms));
     }
 
@@ -37,9 +37,9 @@ public class RoomsController : ControllerBase
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(RoomResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(Guid id)
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
     {
-        var room = await _roomManager.GetRoomByIdAsync(id);
+        var room = await _roomManager.GetRoomByIdAsync(id, cancellationToken: cancellationToken);
         return Ok(_mapper.Map<RoomResponseDto>(room));
     }
 
@@ -49,10 +49,10 @@ public class RoomsController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(RoomResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Create([FromBody] CreateRoomDto dto)
+    public async Task<IActionResult> Create([FromBody] CreateRoomDto dto, CancellationToken cancellationToken = default)
     {
         var request = _mapper.Map<CreateRoomRequest>(dto);
-        var created = await _roomManager.CreateRoomAsync(request);
+        var created = await _roomManager.CreateRoomAsync(request, cancellationToken);
         var response = _mapper.Map<RoomResponseDto>(created);
         return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
     }
@@ -64,10 +64,10 @@ public class RoomsController : ControllerBase
     [ProducesResponseType(typeof(RoomResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateRoomDto dto)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateRoomDto dto, CancellationToken cancellationToken = default)
     {
         var request = _mapper.Map<UpdateRoomRequest>(dto);
-        var updated = await _roomManager.UpdateRoomAsync(id, request);
+        var updated = await _roomManager.UpdateRoomAsync(id, request, cancellationToken);
         return Ok(_mapper.Map<RoomResponseDto>(updated));
     }
 
@@ -77,9 +77,9 @@ public class RoomsController : ControllerBase
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(Guid id)
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
     {
-        await _roomManager.DeleteRoomAsync(id);
+        await _roomManager.DeleteRoomAsync(id, cancellationToken);
         return NoContent();
     }
 
@@ -92,9 +92,10 @@ public class RoomsController : ControllerBase
     public async Task<IActionResult> SearchAvailable(
         [FromQuery] DateTime start,
         [FromQuery] DateTime end,
-        [FromQuery] int capacity = 1)
+        [FromQuery] int capacity = 1,
+        CancellationToken cancellationToken = default)
     {
-        var available = await _roomManager.SearchAvailableRoomsAsync(start, end, capacity);
+        var available = await _roomManager.SearchAvailableRoomsAsync(start, end, capacity, cancellationToken);
         return Ok(_mapper.Map<IEnumerable<RoomResponseDto>>(available));
     }
 }

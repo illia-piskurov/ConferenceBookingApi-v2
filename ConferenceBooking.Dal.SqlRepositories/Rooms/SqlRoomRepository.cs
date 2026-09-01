@@ -22,44 +22,44 @@ public class SqlRoomRepository : IRoomRepository
         _mapper = mapper;
     }
 
-    public async Task<IEnumerable<Room>> GetAllAsync()
+    public async Task<IEnumerable<Room>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connectionFactory.CreateConnectionAsync();
+        await using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
         await using var command = connection.Procedure(SqlProcedures.Rooms.GetAll);
 
-        return await ReadRoomsWithServicesAsync(command);
+        return await ReadRoomsWithServicesAsync(command, cancellationToken);
     }
 
-    public async Task<IEnumerable<Room>> SearchAvailableAsync(DateTime start, DateTime end, int capacity)
+    public async Task<IEnumerable<Room>> SearchAvailableAsync(DateTime start, DateTime end, int capacity, CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connectionFactory.CreateConnectionAsync();
+        await using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
         await using var command = connection
             .Procedure(SqlProcedures.Rooms.SearchAvailable)
             .AddParam("@StartTime", SqlDbType.DateTime2, start)
             .AddParam("@EndTime", SqlDbType.DateTime2, end)
             .AddParam("@Capacity", SqlDbType.Int, capacity);
 
-        return await ReadRoomsWithServicesAsync(command);
+        return await ReadRoomsWithServicesAsync(command, cancellationToken);
     }
 
-    public async Task<Room?> GetByIdAsync(Guid id)
+    public async Task<Room?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connectionFactory.CreateConnectionAsync();
+        await using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
         await using var command = connection
             .Procedure(SqlProcedures.Rooms.GetById)
             .AddParam("@Id", SqlDbType.UniqueIdentifier, id);
 
-        await using var reader = await command.ExecuteReaderAsync();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
-        if (!await reader.ReadAsync())
+        if (!await reader.ReadAsync(cancellationToken))
             return null;
 
         var entity = MapRoomEntity(reader);
         var room = _mapper.Map<Room>(entity);
 
-        if (await reader.NextResultAsync())
+        if (await reader.NextResultAsync(cancellationToken))
         {
-            while (await reader.ReadAsync())
+            while (await reader.ReadAsync(cancellationToken))
             {
                 var serviceEntity = MapServiceEntity(reader);
                 room.AvailableServices.Add(_mapper.Map<Service>(serviceEntity));
@@ -69,9 +69,9 @@ public class SqlRoomRepository : IRoomRepository
         return room;
     }
 
-    public async Task<Room> AddAsync(Room room)
+    public async Task<Room> AddAsync(Room room, CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connectionFactory.CreateConnectionAsync();
+        await using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
         await using var command = connection
             .Procedure(SqlProcedures.Rooms.Insert)
             .AddInputOutputParam("@Id", SqlDbType.UniqueIdentifier, room.Id, out var idParam)
@@ -80,15 +80,15 @@ public class SqlRoomRepository : IRoomRepository
             .AddParam("@BaseHourlyRate", SqlDbType.Decimal, 18, 2, room.BaseHourlyRate)
             .AddGuidTvpParam("@ServiceIds", room.AvailableServices.Select(s => s.Id));
 
-        await command.ExecuteNonQueryAsync();
+        await command.ExecuteNonQueryAsync(cancellationToken);
 
         room.Id = (Guid)idParam.Value;
         return room;
     }
 
-    public async Task<Room> UpdateAsync(Room room)
+    public async Task<Room> UpdateAsync(Room room, CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connectionFactory.CreateConnectionAsync();
+        await using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
         await using var command = connection
             .Procedure(SqlProcedures.Rooms.Update)
             .AddParam("@Id", SqlDbType.UniqueIdentifier, room.Id)
@@ -97,20 +97,20 @@ public class SqlRoomRepository : IRoomRepository
             .AddParam("@BaseHourlyRate", SqlDbType.Decimal, 18, 2, room.BaseHourlyRate)
             .AddGuidTvpParam("@ServiceIds", room.AvailableServices.Select(s => s.Id));
 
-        await command.ExecuteNonQueryAsync();
+        await command.ExecuteNonQueryAsync(cancellationToken);
         return room;
     }
 
-    public async Task DeleteAsync(Guid id)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connectionFactory.CreateConnectionAsync();
+        await using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
         await using var command = connection
             .Procedure(SqlProcedures.Rooms.Delete)
             .AddParam("@Id", SqlDbType.UniqueIdentifier, id);
 
         try
         {
-            await command.ExecuteNonQueryAsync();
+            await command.ExecuteNonQueryAsync(cancellationToken);
         }
         catch (SqlException ex) when (ex.Number == 50002)
         {
@@ -118,32 +118,27 @@ public class SqlRoomRepository : IRoomRepository
         }
     }
 
-    private async Task<List<Room>> ReadRoomsWithServicesAsync(SqlCommand command)
+    private async Task<List<Room>> ReadRoomsWithServicesAsync(SqlCommand command, CancellationToken cancellationToken)
     {
-        await using var reader = await command.ExecuteReaderAsync();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
         var rooms = new Dictionary<Guid, Room>();
 
-        while (await reader.ReadAsync())
+        while (await reader.ReadAsync(cancellationToken))
         {
             var entity = MapRoomEntity(reader);
             var room = _mapper.Map<Room>(entity);
             rooms[room.Id] = room;
         }
 
-        if (await reader.NextResultAsync())
+        if (await reader.NextResultAsync(cancellationToken))
         {
-            while (await reader.ReadAsync())
+            while (await reader.ReadAsync(cancellationToken))
             {
                 var roomId = reader.Get<Guid>("RoomId");
                 if (rooms.TryGetValue(roomId, out var room))
                 {
-                    var serviceEntity = new ServiceEntity
-                    {
-                        Id = reader.Get<Guid>("ServiceId"),
-                        Name = reader.Get<string>("Name"),
-                        Price = reader.Get<decimal>("Price")
-                    };
+                    var serviceEntity = MapServiceEntity(reader);
                     room.AvailableServices.Add(_mapper.Map<Service>(serviceEntity));
                 }
             }
@@ -161,10 +156,17 @@ public class SqlRoomRepository : IRoomRepository
         IsDeleted = reader.Get<bool>("IsDeleted")
     };
 
-    private static ServiceEntity MapServiceEntity(SqlDataReader reader) => new()
+    private static ServiceEntity MapServiceEntity(SqlDataReader reader)
     {
-        Id = reader.Get<Guid>("Id"),
-        Name = reader.Get<string>("Name"),
-        Price = reader.Get<decimal>("Price")
-    };
+        var id = reader.HasColumn("ServiceId")
+            ? reader.Get<Guid>("ServiceId")
+            : reader.Get<Guid>("Id");
+
+        return new ServiceEntity
+        {
+            Id = id,
+            Name = reader.Get<string>("Name"),
+            Price = reader.Get<decimal>("Price")
+        };
+    }
 }

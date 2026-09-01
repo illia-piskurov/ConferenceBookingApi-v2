@@ -27,10 +27,10 @@ public class BookingsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Create([FromBody] CreateBookingDto dto)
+    public async Task<IActionResult> Create([FromBody] CreateBookingDto dto, CancellationToken cancellationToken = default)
     {
         var details = await _bookingManager.CreateBookingAsync(
-            dto.RoomId, dto.StartTime, dto.EndTime, dto.SelectedServiceIds);
+            dto.RoomId, dto.StartTime, dto.EndTime, dto.SelectedServiceIds, cancellationToken);
 
         var response = _mapper.Map<BookingResponseDto>(details);
         return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
@@ -42,9 +42,9 @@ public class BookingsController : ControllerBase
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(BookingResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(Guid id)
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
     {
-        var details = await _bookingManager.GetBookingByIdAsync(id);
+        var details = await _bookingManager.GetBookingByIdAsync(id, cancellationToken);
         return Ok(_mapper.Map<BookingResponseDto>(details));
     }
 
@@ -54,9 +54,9 @@ public class BookingsController : ControllerBase
     [HttpGet("room/{roomId:guid}")]
     [ProducesResponseType(typeof(IEnumerable<BookingResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetByRoom(Guid roomId)
+    public async Task<IActionResult> GetByRoom(Guid roomId, CancellationToken cancellationToken = default)
     {
-        var detailsList = await _bookingManager.GetBookingsByRoomAsync(roomId);
+        var detailsList = await _bookingManager.GetBookingsByRoomAsync(roomId, cancellationToken);
         return Ok(_mapper.Map<IEnumerable<BookingResponseDto>>(detailsList));
     }
 }

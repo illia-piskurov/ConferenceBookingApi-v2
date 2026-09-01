@@ -22,16 +22,16 @@ public class BookingManager : IBookingManager
         _pricingManager = pricingManager;
     }
 
-    public async Task<BookingDetails> CreateBookingAsync(Guid roomId, DateTime startTime, DateTime endTime, IEnumerable<Guid> selectedServiceIds)
+    public async Task<BookingDetails> CreateBookingAsync(Guid roomId, DateTime startTime, DateTime endTime, IEnumerable<Guid> selectedServiceIds, CancellationToken cancellationToken = default)
     {
-        var room = await _roomManager.GetRoomByIdAsync(roomId);
+        var room = await _roomManager.GetRoomByIdAsync(roomId, cancellationToken: cancellationToken);
 
         ValidateBookingTime(startTime, endTime);
 
         var serviceIdList = selectedServiceIds as IReadOnlyCollection<Guid> ?? selectedServiceIds.ToList();
         var selectedServices = GetSelectedServices(room, serviceIdList);
 
-        var conflicts = await _bookingRepository.GetOverlappingAsync(roomId, startTime, endTime);
+        var conflicts = await _bookingRepository.GetOverlappingAsync(roomId, startTime, endTime, cancellationToken);
         if (conflicts.Any())
         {
             throw new BookingConflictException(roomId, startTime, endTime);
@@ -50,7 +50,7 @@ public class BookingManager : IBookingManager
             CreatedAt = DateTime.UtcNow
         };
 
-        await _bookingRepository.AddAsync(booking);
+        await _bookingRepository.AddAsync(booking, cancellationToken);
 
         return new BookingDetails
         {
@@ -60,15 +60,15 @@ public class BookingManager : IBookingManager
         };
     }
 
-    public async Task<BookingDetails> GetBookingByIdAsync(Guid id)
+    public async Task<BookingDetails> GetBookingByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var booking = await _bookingRepository.GetByIdAsync(id);
+        var booking = await _bookingRepository.GetByIdAsync(id, cancellationToken);
         if (booking is null)
         {
             throw new BookingNotFoundException(id);
         }
 
-        var room = await _roomManager.GetRoomByIdAsync(booking.RoomId, includeDeleted: true);
+        var room = await _roomManager.GetRoomByIdAsync(booking.RoomId, includeDeleted: true, cancellationToken: cancellationToken);
 
         return new BookingDetails
         {
@@ -77,11 +77,11 @@ public class BookingManager : IBookingManager
         };
     }
 
-    public async Task<IEnumerable<BookingDetails>> GetBookingsByRoomAsync(Guid roomId)
+    public async Task<IEnumerable<BookingDetails>> GetBookingsByRoomAsync(Guid roomId, CancellationToken cancellationToken = default)
     {
-        var room = await _roomManager.GetRoomByIdAsync(roomId, includeDeleted: true);
+        var room = await _roomManager.GetRoomByIdAsync(roomId, includeDeleted: true, cancellationToken: cancellationToken);
 
-        var bookings = await _bookingRepository.GetByRoomIdAsync(roomId);
+        var bookings = await _bookingRepository.GetByRoomIdAsync(roomId, cancellationToken);
         return bookings.Select(b => new BookingDetails
         {
             Booking = b,

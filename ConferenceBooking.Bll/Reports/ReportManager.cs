@@ -15,11 +15,11 @@ public class ReportManager : IReportManager
         _reportRepository = reportRepository;
     }
 
-    public async Task<RevenueReport> GetRevenueReportAsync(DateTime from, DateTime to)
+    public async Task<RevenueReport> GetRevenueReportAsync(DateTime from, DateTime to, CancellationToken cancellationToken = default)
     {
         ValidateDateRange(from, to);
 
-        var byDay = await _reportRepository.GetRevenueByDayAsync(from, to);
+        var byDay = await _reportRepository.GetRevenueByDayAsync(from, to, cancellationToken);
 
         return new RevenueReport
         {
@@ -31,19 +31,19 @@ public class ReportManager : IReportManager
         };
     }
 
-    public async Task<IEnumerable<RoomPopularity>> GetRoomPopularityAsync()
+    public async Task<IEnumerable<RoomPopularity>> GetRoomPopularityAsync(CancellationToken cancellationToken = default)
     {
-        return await _reportRepository.GetRoomPopularityAsync();
+        return await _reportRepository.GetRoomPopularityAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<RoomLoad>> GetRoomLoadAsync(DateTime from, DateTime to)
+    public async Task<IEnumerable<RoomLoad>> GetRoomLoadAsync(DateTime from, DateTime to, CancellationToken cancellationToken = default)
     {
         ValidateDateRange(from, to);
 
         var totalDays = (to - from).TotalDays;
         var totalAvailableHoursPerRoom = totalDays * DailyWorkingHours;
 
-        var roomsLoad = await _reportRepository.GetRoomLoadRawAsync(from, to);
+        var roomsLoad = await _reportRepository.GetRoomLoadRawAsync(from, to, cancellationToken);
 
         foreach (var room in roomsLoad)
         {

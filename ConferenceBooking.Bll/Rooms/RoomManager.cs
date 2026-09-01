@@ -13,14 +13,14 @@ public class RoomManager : IRoomManager
         _roomRepository = roomRepository;
     }
 
-    public async Task<IEnumerable<Room>> GetAllRoomsAsync()
+    public async Task<IEnumerable<Room>> GetAllRoomsAsync(CancellationToken cancellationToken = default)
     {
-        return await _roomRepository.GetAllAsync();
+        return await _roomRepository.GetAllAsync(cancellationToken);
     }
 
-    public async Task<Room> GetRoomByIdAsync(Guid id, bool includeDeleted = false)
+    public async Task<Room> GetRoomByIdAsync(Guid id, bool includeDeleted = false, CancellationToken cancellationToken = default)
     {
-        var room = await _roomRepository.GetByIdAsync(id);
+        var room = await _roomRepository.GetByIdAsync(id, cancellationToken);
         if (room is null || (!includeDeleted && room.IsDeleted))
         {
             throw new RoomNotFoundException(id);
@@ -29,7 +29,7 @@ public class RoomManager : IRoomManager
         return room;
     }
 
-    public async Task<Room> CreateRoomAsync(CreateRoomRequest request)
+    public async Task<Room> CreateRoomAsync(CreateRoomRequest request, CancellationToken cancellationToken = default)
     {
         var room = new Room
         {
@@ -40,32 +40,32 @@ public class RoomManager : IRoomManager
             AvailableServices = request.AvailableServices.ToList()
         };
 
-        return await _roomRepository.AddAsync(room);
+        return await _roomRepository.AddAsync(room, cancellationToken);
     }
 
-    public async Task<Room> UpdateRoomAsync(Guid id, UpdateRoomRequest request)
+    public async Task<Room> UpdateRoomAsync(Guid id, UpdateRoomRequest request, CancellationToken cancellationToken = default)
     {
-        var existing = await GetRoomByIdAsync(id);
+        var existing = await GetRoomByIdAsync(id, cancellationToken: cancellationToken);
 
         existing.Name = request.Name;
         existing.Capacity = request.Capacity;
         existing.BaseHourlyRate = request.BaseHourlyRate;
         existing.AvailableServices = request.AvailableServices.ToList();
 
-        return await _roomRepository.UpdateAsync(existing);
+        return await _roomRepository.UpdateAsync(existing, cancellationToken);
     }
 
-    public async Task DeleteRoomAsync(Guid id)
+    public async Task DeleteRoomAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        await GetRoomByIdAsync(id);
-        await _roomRepository.DeleteAsync(id);
+        await GetRoomByIdAsync(id, cancellationToken: cancellationToken);
+        await _roomRepository.DeleteAsync(id, cancellationToken);
     }
 
-    public async Task<IEnumerable<Room>> SearchAvailableRoomsAsync(DateTime start, DateTime end, int capacity)
+    public async Task<IEnumerable<Room>> SearchAvailableRoomsAsync(DateTime start, DateTime end, int capacity, CancellationToken cancellationToken = default)
     {
         if (start >= end)
             throw new InvalidBookingTimeException("Час початку повинен бути раніше часу закінчення.");
 
-        return await _roomRepository.SearchAvailableAsync(start, end, capacity);
+        return await _roomRepository.SearchAvailableAsync(start, end, capacity, cancellationToken);
     }
 }

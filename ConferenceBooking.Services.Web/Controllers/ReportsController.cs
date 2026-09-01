@@ -25,9 +25,9 @@ public class ReportsController : ControllerBase
     [HttpGet("revenue")]
     [ProducesResponseType(typeof(RevenueReportDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetRevenueReport([FromQuery] DateTime from, [FromQuery] DateTime to)
+    public async Task<IActionResult> GetRevenueReport([FromQuery] DateTime from, [FromQuery] DateTime to, CancellationToken cancellationToken = default)
     {
-        var report = await _reportManager.GetRevenueReportAsync(from, to);
+        var report = await _reportManager.GetRevenueReportAsync(from, to, cancellationToken);
         return Ok(_mapper.Map<RevenueReportDto>(report));
     }
 
@@ -36,9 +36,9 @@ public class ReportsController : ControllerBase
     /// </summary>
     [HttpGet("popularity")]
     [ProducesResponseType(typeof(IEnumerable<RoomPopularityDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetRoomPopularity()
+    public async Task<IActionResult> GetRoomPopularity(CancellationToken cancellationToken = default)
     {
-        var popularity = await _reportManager.GetRoomPopularityAsync();
+        var popularity = await _reportManager.GetRoomPopularityAsync(cancellationToken);
         return Ok(_mapper.Map<IEnumerable<RoomPopularityDto>>(popularity));
     }
 
@@ -48,9 +48,9 @@ public class ReportsController : ControllerBase
     [HttpGet("load")]
     [ProducesResponseType(typeof(IEnumerable<RoomLoadDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetRoomLoad([FromQuery] DateTime from, [FromQuery] DateTime to)
+    public async Task<IActionResult> GetRoomLoad([FromQuery] DateTime from, [FromQuery] DateTime to, CancellationToken cancellationToken = default)
     {
-        var load = await _reportManager.GetRoomLoadAsync(from, to);
+        var load = await _reportManager.GetRoomLoadAsync(from, to, cancellationToken);
         return Ok(_mapper.Map<IEnumerable<RoomLoadDto>>(load));
     }
 }

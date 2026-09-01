@@ -176,4 +176,17 @@ public static class SqlDataReaderExtensions
         var ordinal = reader.GetOrdinal(columnName);
         return reader.IsDBNull(ordinal) ? null : reader.GetFieldValue<T>(ordinal);
     }
+
+    /// <summary>
+    /// Перевіряє наявність колонки у вибірці
+    /// </summary>
+    public static bool HasColumn(this SqlDataReader reader, string columnName)
+    {
+        for (var i = 0; i < reader.FieldCount; i++)
+        {
+            if (reader.GetName(i).Equals(columnName, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
 }
