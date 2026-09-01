@@ -1,4 +1,5 @@
-using ConferenceBooking.LoadTest.Metrics;
+using ConferenceBooking.LoadTest.Models;
+using ConferenceBooking.LoadTest.Reporting;
 using ConferenceBooking.LoadTest.Scenarios;
 
 namespace ConferenceBooking.LoadTest;
@@ -69,7 +70,7 @@ internal class Program
 
         Console.WriteLine($"Старт тесту: {totalRequests} задач, {concurrency} одночасних запитів...\n");
         var report = await runner.RunTestAsync(totalRequests, concurrency);
-        report.PrintToConsole();
+        ConsoleReportPrinter.PrintIndividualReport(report);
     }
 
     private static async Task RunCustomTestPromptAsync(string baseUrl)
@@ -115,64 +116,13 @@ internal class Program
             Console.ResetColor();
 
             var report = await runner.RunTestAsync(total, concurrency);
-            report.PrintToConsole();
+            ConsoleReportPrinter.PrintIndividualReport(report);
             reports.Add(report);
 
             // Пауза 2 секунди між прогонами для стабілізації ресурсів
             await Task.Delay(2000);
         }
 
-        PrintComparativeTable(reports);
-    }
-
-    private static void PrintComparativeTable(IReadOnlyList<TestRunReport> reports)
-    {
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("\n" + new string('=', 130));
-        Console.WriteLine("                                  ПОРІВНЯЛЬНА ТАБЛИЦЯ НАВАНТАЖУВАЛЬНОГО ТЕСТУВАННЯ");
-        Console.WriteLine(new string('=', 130));
-        Console.ResetColor();
-
-        Console.WriteLine(string.Format("{0,-11} | {1,-10} | {2,-12} | {3,-13} | {4,-15} | {5,-14} | {6,-9} | {7,-9} | {8,-9} | {9,-9}",
-            "Concurrency", "Час (сек)", "RPS", "Успіх (2xx)", "Конфлікт (409)", "Помилки (5xx)", "Мін (мс)", "Сер (мс)", "P50 (мед)", "P95 (мс)"));
-        Console.WriteLine(new string('-', 130));
-
-        foreach (var r in reports)
-        {
-            Console.WriteLine(string.Format("{0,-11} | {1,8:F2} c | {2,8:F1} req/s | {3,6} ({4:F0}%) | {5,7} ({6:F0}%) | {7,7} ({8:F0}%) | {9,7:F1} | {10,7:F1} | {11,7:F1} | {12,7:F1}",
-                $"{r.Concurrency} conn",
-                r.TotalExecutionTime.TotalSeconds,
-                r.RequestsPerSecond,
-                r.SuccessCount,
-                r.SuccessRate,
-                r.ConflictCount,
-                r.ConflictRate,
-                r.ErrorCount,
-                r.ErrorRate,
-                r.MinResponseTimeMs,
-                r.AvgResponseTimeMs,
-                r.P50ResponseTimeMs,
-                r.P95ResponseTimeMs));
-        }
-
-        Console.WriteLine(new string('=', 130));
-
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("Висновки:");
-        if (reports.Count >= 2)
-        {
-            var minConc = reports.OrderBy(r => r.Concurrency).First();
-            var maxConc = reports.OrderBy(r => r.Concurrency).Last();
-            var rpsDiff = maxConc.RequestsPerSecond - minConc.RequestsPerSecond;
-
-            if (rpsDiff > 0)
-            {
-                Console.WriteLine($" • Пропускна здатність (RPS) зросла на {rpsDiff:F1} req/s при збільшенні конкурентності з {minConc.Concurrency} до {maxConc.Concurrency}.");
-            }
-            Console.WriteLine($" • Середній час відповіді змінився з {minConc.AvgResponseTimeMs:F1} мс до {maxConc.AvgResponseTimeMs:F1} мс через насичення черги пулу з'єднань.");
-        }
-        Console.WriteLine(" • Сервер успішно обробив усі запити без критичних падінь та витоків сокетів.");
-        Console.ResetColor();
-        Console.WriteLine();
+        ConsoleReportPrinter.PrintComparativeTable(reports);
     }
 }

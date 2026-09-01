@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
 using ConferenceBooking.LoadTest.Metrics;
+using ConferenceBooking.LoadTest.Models;
 
 namespace ConferenceBooking.LoadTest.Scenarios;
 

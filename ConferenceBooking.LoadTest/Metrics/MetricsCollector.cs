@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using ConferenceBooking.LoadTest.Models;
 
 namespace ConferenceBooking.LoadTest.Metrics;
 

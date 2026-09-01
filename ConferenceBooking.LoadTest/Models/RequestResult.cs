@@ -1,4 +1,4 @@
-namespace ConferenceBooking.LoadTest.Metrics;
+namespace ConferenceBooking.LoadTest.Models;
 
 public record RequestResult(
     string Method,
