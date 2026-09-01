@@ -2,6 +2,7 @@
   <Project Path="ConferenceBooking.Bll.Common/ConferenceBooking.Bll.Common.csproj" />
   <Project Path="ConferenceBooking.Bll/ConferenceBooking.Bll.csproj" />
   <Project Path="ConferenceBooking.Dal.SqlRepositories/ConferenceBooking.Dal.SqlRepositories.csproj" />
+  <Project Path="ConferenceBooking.LoadTest/ConferenceBooking.LoadTest.csproj" />
   <Project Path="ConferenceBooking.Services.Web/ConferenceBooking.Services.Web.csproj" />
   <Project Path="ConferenceBooking.Utils.DbUp/ConferenceBooking.Utils.DbUp.csproj" />
 </Solution>
