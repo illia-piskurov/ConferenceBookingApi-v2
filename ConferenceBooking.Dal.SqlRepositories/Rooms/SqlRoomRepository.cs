@@ -112,7 +112,7 @@ public class SqlRoomRepository : IRoomRepository
         {
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
-        catch (SqlException ex) when (ex.Number == 50002)
+        catch (SqlException ex) when (ex.Number == SqlErrorCodes.RoomHasActiveBookings)
         {
             throw new RoomHasActiveBookingsException(id);
         }

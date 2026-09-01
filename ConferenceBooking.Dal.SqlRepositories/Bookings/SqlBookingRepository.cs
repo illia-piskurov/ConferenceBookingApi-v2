@@ -106,7 +106,7 @@ public class SqlBookingRepository : IBookingRepository
         {
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
-        catch (SqlException ex) when (ex.Number == 50001)
+        catch (SqlException ex) when (ex.Number == SqlErrorCodes.BookingConflict)
         {
             throw new BookingConflictException(booking.RoomId, booking.StartTime, booking.EndTime);
         }
