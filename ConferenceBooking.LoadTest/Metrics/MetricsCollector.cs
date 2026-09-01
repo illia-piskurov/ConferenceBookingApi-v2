@@ -30,7 +30,8 @@ public class MetricsCollector
         var durations = list.Select(r => r.DurationMs).OrderBy(d => d).ToArray();
 
         var successCount = list.Count(r => r.IsSuccess);
-        var failureCount = totalRequests - successCount;
+        var conflictCount = list.Count(r => r.StatusCode == 409);
+        var errorCount = totalRequests - successCount - conflictCount;
 
         var min = durations[0];
         var max = durations[^1];
@@ -59,7 +60,8 @@ public class MetricsCollector
             TotalExecutionTime = totalExecutionTime,
             RequestsPerSecond = rps,
             SuccessCount = successCount,
-            FailureCount = failureCount,
+            ConflictCount = conflictCount,
+            ErrorCount = errorCount,
             MinResponseTimeMs = min,
             MaxResponseTimeMs = max,
             AvgResponseTimeMs = avg,

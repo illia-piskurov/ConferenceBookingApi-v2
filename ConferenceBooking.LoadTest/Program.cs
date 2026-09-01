@@ -64,7 +64,7 @@ internal class Program
     private static async Task RunSingleTestAsync(string baseUrl, int totalRequests, int concurrency)
     {
         Console.WriteLine($"\nПідключення до {baseUrl}...");
-        var runner = new LoadScenarioRunner(baseUrl);
+        using var runner = new LoadScenarioRunner(baseUrl);
         await runner.InitializeAsync();
 
         Console.WriteLine($"Старт тесту: {totalRequests} задач, {concurrency} одночасних запитів...\n");
@@ -91,7 +91,7 @@ internal class Program
         Console.WriteLine("\n>>> ІНІЦІАЛІЗАЦІЯ ПОРІВНЯЛЬНОГО БЕНЧМАРКУ <<<");
         Console.ResetColor();
 
-        var runner = new LoadScenarioRunner(baseUrl);
+        using var runner = new LoadScenarioRunner(baseUrl);
         await runner.InitializeAsync();
 
         // Невеликий розігрів (Warmup) для JIT та пулу з'єднань
@@ -128,32 +128,34 @@ internal class Program
     private static void PrintComparativeTable(IReadOnlyList<TestRunReport> reports)
     {
         Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("\n" + new string('=', 115));
-        Console.WriteLine("                         ПОРІВНЯЛЬНА ТАБЛИЦЯ НАВАНТАЖУВАЛЬНОГО ТЕСТУВАННЯ");
-        Console.WriteLine(new string('=', 115));
+        Console.WriteLine("\n" + new string('=', 130));
+        Console.WriteLine("                                  ПОРІВНЯЛЬНА ТАБЛИЦЯ НАВАНТАЖУВАЛЬНОГО ТЕСТУВАННЯ");
+        Console.WriteLine(new string('=', 130));
         Console.ResetColor();
 
-        Console.WriteLine(string.Format("{0,-12} | {1,-10} | {2,-12} | {3,-13} | {4,-11} | {5,-9} | {6,-9} | {7,-9} | {8,-9}",
-            "Concurrency", "Час (сек)", "RPS", "Успіх (2xx)", "Помилки", "Мін (мс)", "Сер (мс)", "P50 (мед)", "P95 (мс)"));
-        Console.WriteLine(new string('-', 115));
+        Console.WriteLine(string.Format("{0,-11} | {1,-10} | {2,-12} | {3,-13} | {4,-15} | {5,-14} | {6,-9} | {7,-9} | {8,-9} | {9,-9}",
+            "Concurrency", "Час (сек)", "RPS", "Успіх (2xx)", "Конфлікт (409)", "Помилки (5xx)", "Мін (мс)", "Сер (мс)", "P50 (мед)", "P95 (мс)"));
+        Console.WriteLine(new string('-', 130));
 
         foreach (var r in reports)
         {
-            Console.WriteLine(string.Format("{0,-12} | {1,8:F2} c | {2,8:F1} req/s | {3,6} ({4:F0}%) | {5,6} ({6:F0}%) | {7,7:F1} | {8,7:F1} | {9,7:F1} | {10,7:F1}",
+            Console.WriteLine(string.Format("{0,-11} | {1,8:F2} c | {2,8:F1} req/s | {3,6} ({4:F0}%) | {5,7} ({6:F0}%) | {7,7} ({8:F0}%) | {9,7:F1} | {10,7:F1} | {11,7:F1} | {12,7:F1}",
                 $"{r.Concurrency} conn",
                 r.TotalExecutionTime.TotalSeconds,
                 r.RequestsPerSecond,
                 r.SuccessCount,
                 r.SuccessRate,
-                r.FailureCount,
-                100 - r.SuccessRate,
+                r.ConflictCount,
+                r.ConflictRate,
+                r.ErrorCount,
+                r.ErrorRate,
                 r.MinResponseTimeMs,
                 r.AvgResponseTimeMs,
                 r.P50ResponseTimeMs,
                 r.P95ResponseTimeMs));
         }
 
-        Console.WriteLine(new string('=', 115));
+        Console.WriteLine(new string('=', 130));
 
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("Висновки:");
@@ -167,9 +169,9 @@ internal class Program
             {
                 Console.WriteLine($" • Пропускна здатність (RPS) зросла на {rpsDiff:F1} req/s при збільшенні конкурентності з {minConc.Concurrency} до {maxConc.Concurrency}.");
             }
-            Console.WriteLine($" • Середній час відповіді змінився з {minConc.AvgResponseTimeMs:F1} мс до {maxConc.AvgResponseTimeMs:F1} мс через насичення пулу з'єднань.");
+            Console.WriteLine($" • Середній час відповіді змінився з {minConc.AvgResponseTimeMs:F1} мс до {maxConc.AvgResponseTimeMs:F1} мс через насичення черги пулу з'єднань.");
         }
-        Console.WriteLine(" • Сервер успішно обробив усі запити без падінь та витоків сокетів.");
+        Console.WriteLine(" • Сервер успішно обробив усі запити без критичних падінь та витоків сокетів.");
         Console.ResetColor();
         Console.WriteLine();
     }

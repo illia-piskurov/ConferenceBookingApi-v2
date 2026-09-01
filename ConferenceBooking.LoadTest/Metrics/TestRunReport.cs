@@ -8,8 +8,13 @@ public class TestRunReport
     public double RequestsPerSecond { get; init; }
 
     public int SuccessCount { get; init; }
-    public int FailureCount { get; init; }
+    public int ConflictCount { get; init; }
+    public int ErrorCount { get; init; }
+    public int FailureCount => ConflictCount + ErrorCount;
+
     public double SuccessRate => TotalRequests > 0 ? (double)SuccessCount / TotalRequests * 100 : 0;
+    public double ConflictRate => TotalRequests > 0 ? (double)ConflictCount / TotalRequests * 100 : 0;
+    public double ErrorRate => TotalRequests > 0 ? (double)ErrorCount / TotalRequests * 100 : 0;
 
     public double MinResponseTimeMs { get; init; }
     public double MaxResponseTimeMs { get; init; }
@@ -36,15 +41,24 @@ public class TestRunReport
         Console.WriteLine($"Успішних запитів (2xx):     {SuccessCount} ({SuccessRate:F1}%)");
         Console.ResetColor();
 
-        if (FailureCount > 0)
+        if (ConflictCount > 0)
         {
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"Запитів з помилками/кодами: {FailureCount} ({100 - SuccessRate:F1}%)");
+            Console.WriteLine($"Броней відхилено (409):     {ConflictCount} ({ConflictRate:F1}%) — накладення часу");
+            Console.ResetColor();
+        }
+
+        if (ErrorCount > 0)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Помилок сервера/мережі:     {ErrorCount} ({ErrorRate:F1}%)");
             Console.ResetColor();
         }
         else
         {
-            Console.WriteLine($"Запитів з помилками:        0 (0.0%)");
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"Помилок сервера (5xx/сбої): 0 (0.0%)");
+            Console.ResetColor();
         }
 
         Console.WriteLine("\nЧас відповіді (мс):");

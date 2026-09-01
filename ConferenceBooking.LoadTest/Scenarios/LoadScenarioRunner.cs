@@ -5,11 +5,12 @@ using ConferenceBooking.LoadTest.Metrics;
 
 namespace ConferenceBooking.LoadTest.Scenarios;
 
-public class LoadScenarioRunner
+public class LoadScenarioRunner : IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly string _baseUrl;
     private readonly List<Guid> _roomIds = new();
+    private bool _disposed;
 
     public LoadScenarioRunner(string baseUrl)
     {
@@ -91,19 +92,28 @@ public class LoadScenarioRunner
             });
         }
 
-        // Фонове оновлення прогресу
+        // Фонове оновлення прогресу з миттєвим перериванням через токен
+        using var progressCts = new CancellationTokenSource();
         var progressTask = Task.Run(async () =>
         {
-            while (Volatile.Read(ref completedCount) < totalRequests)
+            try
             {
-                await Task.Delay(250);
-                var current = Volatile.Read(ref completedCount);
-                var percent = (int)((double)current / totalRequests * 100);
-                Console.Write($"\r  Виконання {totalRequests} запитів ({concurrency} concurrent)... {percent}% ({current}/{totalRequests})");
+                while (!progressCts.Token.IsCancellationRequested && Volatile.Read(ref completedCount) < totalRequests)
+                {
+                    await Task.Delay(200, progressCts.Token);
+                    var current = Volatile.Read(ref completedCount);
+                    var percent = (int)((double)current / totalRequests * 100);
+                    Console.Write($"\r  Виконання {totalRequests} запитів ({concurrency} concurrent)... {percent}% ({current}/{totalRequests})");
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Завершення прогресу без очікування
             }
         });
 
         await Task.WhenAll(tasks);
+        progressCts.Cancel();
         await progressTask;
         globalSw.Stop();
 
@@ -172,26 +182,26 @@ public class LoadScenarioRunner
         }
         else if (scenarioChoice < 95)
         {
-            // POST /api/rooms
+            // POST /api/rooms (AvailableServices відповідає CreateRoomDto)
             var newRoomPayload = new
             {
                 name = $"Навантажувальний Зал #{index}",
                 capacity = Random.Shared.Next(10, 200),
                 baseHourlyRate = (decimal)Random.Shared.Next(1000, 5000),
-                availableServiceIds = Array.Empty<Guid>()
+                availableServices = Array.Empty<object>()
             };
 
             await MeasureRequestAsync("POST", "/api/rooms", () => _httpClient.PostAsJsonAsync("/api/rooms", newRoomPayload), metrics);
         }
         else
         {
-            // PUT /api/rooms/{id}
+            // PUT /api/rooms/{id} (AvailableServices відповідає UpdateRoomDto)
             var updatePayload = new
             {
                 name = $"Оновлений Зал #{targetRoomId.ToString()[..4]}",
                 capacity = Random.Shared.Next(20, 150),
                 baseHourlyRate = (decimal)Random.Shared.Next(1200, 4000),
-                availableServiceIds = Array.Empty<Guid>()
+                availableServices = Array.Empty<object>()
             };
 
             await MeasureRequestAsync("PUT", "/api/rooms/{id}", () => _httpClient.PutAsJsonAsync($"/api/rooms/{targetRoomId}", updatePayload), metrics);
@@ -226,6 +236,15 @@ public class LoadScenarioRunner
                 DurationMs: sw.Elapsed.TotalMilliseconds,
                 IsSuccess: false,
                 ErrorMessage: ex.Message));
+        }
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _httpClient.Dispose();
+            _disposed = true;
         }
     }
 }
