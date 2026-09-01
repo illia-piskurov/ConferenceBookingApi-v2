@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ConferenceBooking.Services.Web.Controllers;
 
+/// <summary>
+/// Контролер для управління конференц-залами та їх додатковими послугами.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
@@ -14,6 +17,11 @@ public class RoomsController : ControllerBase
     private readonly IRoomManager _roomManager;
     private readonly IMapper _mapper;
 
+    /// <summary>
+    /// Ініціалізує новий екземпляр <see cref="RoomsController"/>.
+    /// </summary>
+    /// <param name="roomManager">Сервіс бізнес-логіки конференц-залів.</param>
+    /// <param name="mapper">Екземпляр мапера об'єктів.</param>
     public RoomsController(IRoomManager roomManager, IMapper mapper)
     {
         _roomManager = roomManager;
@@ -21,8 +29,10 @@ public class RoomsController : ControllerBase
     }
 
     /// <summary>
-    /// Отримати список усіх залів
+    /// Отримати список усіх активних конференц-залів.
     /// </summary>
+    /// <param name="cancellationToken">Токен скасування запиту.</param>
+    /// <returns>Колекція залів із доступними послугами.</returns>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<RoomResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken = default)
@@ -32,8 +42,11 @@ public class RoomsController : ControllerBase
     }
 
     /// <summary>
-    /// Отримати зал за ID
+    /// Отримати детальну інформацію про конференц-зал за його унікальним ідентифікатором.
     /// </summary>
+    /// <param name="id">Унікальний ідентифікатор залу (GUID).</param>
+    /// <param name="cancellationToken">Токен скасування запиту.</param>
+    /// <returns>Дані залу або 404, якщо зал не знайдено.</returns>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(RoomResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -44,8 +57,11 @@ public class RoomsController : ControllerBase
     }
 
     /// <summary>
-    /// Створити новий зал
+    /// Створити новий конференц-зал.
     /// </summary>
+    /// <param name="dto">Модель даних для створення залу.</param>
+    /// <param name="cancellationToken">Токен скасування запиту.</param>
+    /// <returns>Створений зал із присвоєним унікальним ID.</returns>
     [HttpPost]
     [ProducesResponseType(typeof(RoomResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -58,8 +74,12 @@ public class RoomsController : ControllerBase
     }
 
     /// <summary>
-    /// Оновити дані залу
+    /// Оновити дані існуючого конференц-залу.
     /// </summary>
+    /// <param name="id">Унікальний ідентифікатор залу для оновлення.</param>
+    /// <param name="dto">Нові дані залу.</param>
+    /// <param name="cancellationToken">Токен скасування запиту.</param>
+    /// <returns>Оновлена інформація про зал.</returns>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(RoomResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -72,8 +92,11 @@ public class RoomsController : ControllerBase
     }
 
     /// <summary>
-    /// Видалити зал (Soft Delete)
+    /// Видалити конференц-зал (м'яке видалення).
     /// </summary>
+    /// <param name="id">Унікальний ідентифікатор залу.</param>
+    /// <param name="cancellationToken">Токен скасування запиту.</param>
+    /// <returns>Статус 204 NoContent у разі успішного видалення.</returns>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -84,8 +107,13 @@ public class RoomsController : ControllerBase
     }
 
     /// <summary>
-    /// Пошук доступних залів за часовим інтервалом та місткістю
+    /// Пошук доступних конференц-залів за вказаним інтервалом часу та мінімальною місткістю.
     /// </summary>
+    /// <param name="start">Дата та час початку запланованого заходу.</param>
+    /// <param name="end">Дата та час закінчення запланованого заходу.</param>
+    /// <param name="capacity">Необхідна мінімальна місткість (кількість осіб).</param>
+    /// <param name="cancellationToken">Токен скасування запиту.</param>
+    /// <returns>Список вільних залів, що задовольняють критерії пошуку.</returns>
     [HttpGet("available")]
     [ProducesResponseType(typeof(IEnumerable<RoomResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
