@@ -1,4 +1,5 @@
 using ConferenceBooking.LoadTest.Models;
+using Spectre.Console;
 
 namespace ConferenceBooking.LoadTest.Reporting;
 
@@ -6,122 +7,141 @@ public static class ConsoleReportPrinter
 {
     public static void PrintIndividualReport(TestRunReport report)
     {
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine($"\n=======================================================");
-        Console.WriteLine($"   РЕЗУЛЬТАТИ ТЕСТУ: {report.TotalRequests} задач / {report.Concurrency} concurrent");
-        Console.WriteLine($"=======================================================");
-        Console.ResetColor();
+        AnsiConsole.WriteLine();
+        var rule = new Rule($"[bold cyan]РЕЗУЛЬТАТИ ТЕСТУ: {report.TotalRequests} задач / {report.Concurrency} concurrent[/]")
+            .LeftJustified()
+            .RuleStyle("cyan");
+        AnsiConsole.Write(rule);
 
-        Console.WriteLine($"Загальний час виконання:    {report.TotalExecutionTime.TotalSeconds:F2} c");
-        Console.WriteLine($"Пропускна здатність (RPS):  {report.RequestsPerSecond:F2} req/sec");
+        // 1. Загальні метрики у вигляді картки
+        var summaryTable = new Table()
+            .Border(TableBorder.Rounded)
+            .BorderColor(Color.Cyan1)
+            .Title("[bold]Загальні показники[/]")
+            .AddColumn(new TableColumn("[bold]Параметр[/]").LeftAligned())
+            .AddColumn(new TableColumn("[bold]Значення[/]").RightAligned());
 
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine($"Успішних запитів (2xx):     {report.SuccessCount} ({report.SuccessRate:F1}%)");
-        Console.ResetColor();
+        summaryTable.AddRow("Час виконання", $"[bold yellow]{report.TotalExecutionTime.TotalSeconds:F2} c[/]");
+        summaryTable.AddRow("Пропускна здатність", $"[bold green]{report.RequestsPerSecond:F2} req/sec[/]");
+        summaryTable.AddRow("Успішних (2xx)", $"[green]{report.SuccessCount} ({report.SuccessRate:F1}%)[/]");
 
         if (report.ConflictCount > 0)
         {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"Броней відхилено (409):     {report.ConflictCount} ({report.ConflictRate:F1}%) — накладення часу");
-            Console.ResetColor();
+            summaryTable.AddRow("Конфліктів часу (409)", $"[yellow]{report.ConflictCount} ({report.ConflictRate:F1}%)[/]");
         }
 
         if (report.ErrorCount > 0)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Помилок сервера/мережі:     {report.ErrorCount} ({report.ErrorRate:F1}%)");
-            Console.ResetColor();
+            summaryTable.AddRow("Помилок/таймаутів", $"[bold red]{report.ErrorCount} ({report.ErrorRate:F1}%)[/]");
         }
         else
         {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"Помилок сервера (5xx/сбої): 0 (0.0%)");
-            Console.ResetColor();
+            summaryTable.AddRow("Помилок (5xx/Timeout)", "[green]0 (0.0%)[/]");
         }
 
-        Console.WriteLine("\nЧас відповіді (мс):");
-        Console.WriteLine($"  Мін:      {report.MinResponseTimeMs:F1} мс");
-        Console.WriteLine($"  Середній: {report.AvgResponseTimeMs:F1} мс");
-        Console.WriteLine($"  P50 (мед):{report.P50ResponseTimeMs:F1} мс");
-        Console.WriteLine($"  P95:      {report.P95ResponseTimeMs:F1} мс");
-        Console.WriteLine($"  P99:      {report.P99ResponseTimeMs:F1} мс");
-        Console.WriteLine($"  Макс:     {report.MaxResponseTimeMs:F1} мс");
+        // 2. Перцентилі часу відповіді
+        var latencyTable = new Table()
+            .Border(TableBorder.Rounded)
+            .BorderColor(Color.Blue)
+            .Title("[bold]Час відповіді (Latency)[/]")
+            .AddColumn(new TableColumn("[bold]Метрика[/]").LeftAligned())
+            .AddColumn(new TableColumn("[bold]Значення[/]").RightAligned());
 
-        Console.WriteLine("\nРозподіл HTTP-статусів:");
+        latencyTable.AddRow("Мінімальний", $"{report.MinResponseTimeMs:F1} мс");
+        latencyTable.AddRow("Середній", $"{report.AvgResponseTimeMs:F1} мс");
+        latencyTable.AddRow("P50 (медіана)", $"[bold]{report.P50ResponseTimeMs:F1} мс[/]");
+        latencyTable.AddRow("P95 (95-й %)", $"{report.P95ResponseTimeMs:F1} мс");
+        latencyTable.AddRow("P99 (99-й %)", $"{report.P99ResponseTimeMs:F1} мс");
+        latencyTable.AddRow("Максимальний", $"{report.MaxResponseTimeMs:F1} мс");
+
+        // Відображаємо side-by-side у сітці
+        var grid = new Grid();
+        grid.AddColumn();
+        grid.AddColumn();
+        grid.AddRow(summaryTable, latencyTable);
+        AnsiConsole.Write(grid);
+
+        // 3. Розподіл HTTP-статусів
+        var statusTable = new Table()
+            .Border(TableBorder.Rounded)
+            .BorderColor(Color.Grey)
+            .Title("[bold]Розподіл HTTP-статусів[/]")
+            .AddColumn(new TableColumn("[bold]Статус[/]").LeftAligned())
+            .AddColumn(new TableColumn("[bold]Кількість запитів[/]").RightAligned())
+            .AddColumn(new TableColumn("[bold]Частка[/]").RightAligned());
+
         foreach (var (code, count) in report.StatusCodeCounts.OrderBy(kv => kv.Key))
         {
-            var statusName = code switch
+            var percent = (double)count / report.TotalRequests * 100;
+            var (name, color) = code switch
             {
-                0 => "Connection Error / Timeout",
-                200 => "200 OK",
-                201 => "201 Created",
-                204 => "204 NoContent",
-                400 => "400 BadRequest",
-                404 => "404 NotFound",
-                409 => "409 Conflict (накладення бронювань)",
-                499 => "499 Client Closed",
-                500 => "500 InternalServerError",
-                _ => $"{code}"
+                0 => ("Connection Error / Timeout", "red"),
+                200 => ("200 OK", "green"),
+                201 => ("201 Created", "green"),
+                204 => ("204 NoContent", "green"),
+                400 => ("400 BadRequest", "yellow"),
+                404 => ("404 NotFound", "yellow"),
+                409 => ("409 Conflict (накладення)", "yellow"),
+                499 => ("499 Client Closed", "grey"),
+                500 => ("500 InternalServerError", "red"),
+                _ => ($"{code}", "white")
             };
-            Console.WriteLine($"  {statusName,-35}: {count,5} запитів");
+            statusTable.AddRow($"[{color}]{name}[/]", $"[{color}]{count}[/]", $"[{color}]{percent:F1}%[/]");
         }
 
-        Console.WriteLine("\nРозподіл методів:");
-        foreach (var (method, count) in report.MethodCounts.OrderBy(kv => kv.Key))
-        {
-            Console.WriteLine($"  {method,-10}: {count,5} запитів");
-        }
-        Console.WriteLine("-------------------------------------------------------\n");
+        AnsiConsole.Write(statusTable);
+        AnsiConsole.WriteLine();
     }
 
     public static void PrintComparativeTable(IReadOnlyList<TestRunReport> reports)
     {
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("\n" + new string('=', 130));
-        Console.WriteLine("                                  ПОРІВНЯЛЬНА ТАБЛИЦЯ НАВАНТАЖУВАЛЬНОГО ТЕСТУВАННЯ");
-        Console.WriteLine(new string('=', 130));
-        Console.ResetColor();
+        AnsiConsole.WriteLine();
+        var rule = new Rule("[bold cyan]ПОРІВНЯЛЬНА ТАБЛИЦЯ НАВАНТАЖУВАЛЬНОГО ТЕСТУВАННЯ[/]")
+            .Centered()
+            .RuleStyle("cyan");
+        AnsiConsole.Write(rule);
+        AnsiConsole.WriteLine();
 
-        Console.WriteLine(string.Format("{0,-11} | {1,-10} | {2,-12} | {3,-13} | {4,-15} | {5,-14} | {6,-9} | {7,-9} | {8,-9} | {9,-9}",
-            "Concurrency", "Час (сек)", "RPS", "Успіх (2xx)", "Конфлікт (409)", "Помилки (5xx)", "Мін (мс)", "Сер (мс)", "P50 (мед)", "P95 (мс)"));
-        Console.WriteLine(new string('-', 130));
+        var table = new Table()
+            .Border(TableBorder.Rounded)
+            .BorderColor(Color.Cyan1);
+
+        table.AddColumn(new TableColumn("[bold]Паралельність[/]").Centered());
+        table.AddColumn(new TableColumn("[bold]Час (сек)[/]").RightAligned());
+        table.AddColumn(new TableColumn("[bold]RPS[/]").RightAligned());
+        table.AddColumn(new TableColumn("[bold]Успіх (2xx)[/]").RightAligned());
+        table.AddColumn(new TableColumn("[bold]Конфлікт (409)[/]").RightAligned());
+        table.AddColumn(new TableColumn("[bold]Помилки (5xx)[/]").RightAligned());
+        table.AddColumn(new TableColumn("[bold]Мін (мс)[/]").RightAligned());
+        table.AddColumn(new TableColumn("[bold]Сер (мс)[/]").RightAligned());
+        table.AddColumn(new TableColumn("[bold]P50 (мед)[/]").RightAligned());
+        table.AddColumn(new TableColumn("[bold]P95 (мс)[/]").RightAligned());
 
         foreach (var r in reports)
         {
-            Console.WriteLine(string.Format("{0,-11} | {1,8:F2} c | {2,8:F1} req/s | {3,6} ({4:F0}%) | {5,7} ({6:F0}%) | {7,7} ({8:F0}%) | {9,7:F1} | {10,7:F1} | {11,7:F1} | {12,7:F1}",
-                $"{r.Concurrency} conn",
-                r.TotalExecutionTime.TotalSeconds,
-                r.RequestsPerSecond,
-                r.SuccessCount,
-                r.SuccessRate,
-                r.ConflictCount,
-                r.ConflictRate,
-                r.ErrorCount,
-                r.ErrorRate,
-                r.MinResponseTimeMs,
-                r.AvgResponseTimeMs,
-                r.P50ResponseTimeMs,
-                r.P95ResponseTimeMs));
+            var successMarkup = $"[green]{r.SuccessCount} ({r.SuccessRate:F0}%)[/]";
+            var conflictMarkup = r.ConflictCount > 0
+                ? $"[yellow]{r.ConflictCount} ({r.ConflictRate:F0}%)[/]"
+                : $"[grey]{r.ConflictCount} ({r.ConflictRate:F0}%)[/]";
+            var errorMarkup = r.ErrorCount > 0
+                ? $"[bold red]{r.ErrorCount} ({r.ErrorRate:F0}%)[/]"
+                : $"[green]{r.ErrorCount} ({r.ErrorRate:F0}%)[/]";
+
+            table.AddRow(
+                $"[bold cyan]{r.Concurrency} conn[/]",
+                $"{r.TotalExecutionTime.TotalSeconds:F2} c",
+                $"[bold green]{r.RequestsPerSecond:F1}[/]",
+                successMarkup,
+                conflictMarkup,
+                errorMarkup,
+                $"{r.MinResponseTimeMs:F1}",
+                $"{r.AvgResponseTimeMs:F1}",
+                $"{r.P50ResponseTimeMs:F1}",
+                $"{r.P95ResponseTimeMs:F1}"
+            );
         }
 
-        Console.WriteLine(new string('=', 130));
-
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("Висновки:");
-        if (reports.Count >= 2)
-        {
-            var minConc = reports.OrderBy(r => r.Concurrency).First();
-            var maxConc = reports.OrderBy(r => r.Concurrency).Last();
-            var rpsDiff = maxConc.RequestsPerSecond - minConc.RequestsPerSecond;
-
-            if (rpsDiff > 0)
-            {
-                Console.WriteLine($" • Пропускна здатність (RPS) зросла на {rpsDiff:F1} req/s при збільшенні конкурентності з {minConc.Concurrency} до {maxConc.Concurrency}.");
-            }
-            Console.WriteLine($" • Середній час відповіді змінився з {minConc.AvgResponseTimeMs:F1} мс до {maxConc.AvgResponseTimeMs:F1} мс через насичення черги пулу з'єднань.");
-        }
-        Console.WriteLine(" • Сервер успішно обробив усі запити без критичних падінь та витоків сокетів.");
-        Console.ResetColor();
-        Console.WriteLine();
+        AnsiConsole.Write(table);
+        AnsiConsole.WriteLine();
     }
 }

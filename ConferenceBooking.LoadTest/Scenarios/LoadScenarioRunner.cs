@@ -62,15 +62,21 @@ public class LoadScenarioRunner : IDisposable
     }
 
     /// <summary>
-    /// Виконує навантажувальний тест із заданою кількістю задач та ступенем паралельності
+    /// Виконує навантажувальний тест із заданою кількістю задач та ступенем паралельності.
     /// </summary>
-    public async Task<TestRunReport> RunTestAsync(int totalRequests, int concurrency)
+    /// <param name="totalRequests">Загальна кількість асинхронних задач.</param>
+    /// <param name="concurrency">Ступінь паралельності (кількість одночасних з'єднань).</param>
+    /// <param name="progress">Необов'язковий провайдер сповіщення про прогрес виконання запитів.</param>
+    /// <param name="cancellationToken">Токен скасування операції.</param>
+    /// <returns>Агрегований звіт метрик випробування.</returns>
+    public async Task<TestRunReport> RunTestAsync(
+        int totalRequests,
+        int concurrency,
+        IProgress<int>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         var metrics = new MetricsCollector();
         using var semaphore = new SemaphoreSlim(concurrency, concurrency);
-
-        Console.Write($"  Виконання {totalRequests} запитів ({concurrency} concurrent)... ");
-        var completedCount = 0;
 
         var globalSw = Stopwatch.StartNew();
 
@@ -80,7 +86,7 @@ public class LoadScenarioRunner : IDisposable
             var requestIndex = i;
             tasks[i] = Task.Run(async () =>
             {
-                await semaphore.WaitAsync();
+                await semaphore.WaitAsync(cancellationToken);
                 try
                 {
                     await ExecuteRandomScenarioAsync(requestIndex, metrics);
@@ -88,38 +94,14 @@ public class LoadScenarioRunner : IDisposable
                 finally
                 {
                     semaphore.Release();
-                    Interlocked.Increment(ref completedCount);
+                    progress?.Report(1);
                 }
-            });
+            }, cancellationToken);
         }
 
-        // Фонове оновлення прогресу з миттєвим перериванням через токен
-        using var progressCts = new CancellationTokenSource();
-        var progressTask = Task.Run(async () =>
-        {
-            try
-            {
-                while (!progressCts.Token.IsCancellationRequested && Volatile.Read(ref completedCount) < totalRequests)
-                {
-                    await Task.Delay(200, progressCts.Token);
-                    var current = Volatile.Read(ref completedCount);
-                    var percent = (int)((double)current / totalRequests * 100);
-                    Console.Write($"\r  Виконання {totalRequests} запитів ({concurrency} concurrent)... {percent}% ({current}/{totalRequests})");
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // Завершення прогресу без очікування
-            }
-        });
-
         await Task.WhenAll(tasks);
-        progressCts.Cancel();
-        await progressTask;
+
         globalSw.Stop();
-
-        Console.WriteLine($"\r  Виконання {totalRequests} запитів ({concurrency} concurrent)... 100% ({totalRequests}/{totalRequests}) Готово! ({globalSw.Elapsed.TotalSeconds:F2} c)");
-
         return metrics.BuildReport(concurrency, globalSw.Elapsed);
     }
 
