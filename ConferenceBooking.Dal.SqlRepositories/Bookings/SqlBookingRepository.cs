@@ -22,32 +22,32 @@ public class SqlBookingRepository : IBookingRepository
         _mapper = mapper;
     }
 
-    public async Task<IEnumerable<Booking>> GetAllAsync()
+    public async Task<IEnumerable<Booking>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connectionFactory.CreateConnectionAsync();
+        await using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
         await using var command = connection.Procedure(SqlProcedures.Bookings.GetAll);
 
-        return await ReadBookingsWithServicesAsync(command);
+        return await ReadBookingsWithServicesAsync(command, cancellationToken);
     }
 
-    public async Task<Booking?> GetByIdAsync(Guid id)
+    public async Task<Booking?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connectionFactory.CreateConnectionAsync();
+        await using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
         await using var command = connection
             .Procedure(SqlProcedures.Bookings.GetById)
             .AddParam("@Id", SqlDbType.UniqueIdentifier, id);
 
-        await using var reader = await command.ExecuteReaderAsync();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
-        if (!await reader.ReadAsync())
+        if (!await reader.ReadAsync(cancellationToken))
             return null;
 
         var entity = MapBookingEntity(reader);
         var booking = _mapper.Map<Booking>(entity);
 
-        if (await reader.NextResultAsync())
+        if (await reader.NextResultAsync(cancellationToken))
         {
-            while (await reader.ReadAsync())
+            while (await reader.ReadAsync(cancellationToken))
             {
                 booking.SelectedServiceIds.Add(reader.Get<Guid>("ServiceId"));
             }
@@ -56,42 +56,42 @@ public class SqlBookingRepository : IBookingRepository
         return booking;
     }
 
-    public async Task<IEnumerable<Booking>> GetByRoomIdAsync(Guid roomId)
+    public async Task<IEnumerable<Booking>> GetByRoomIdAsync(Guid roomId, CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connectionFactory.CreateConnectionAsync();
+        await using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
         await using var command = connection
             .Procedure(SqlProcedures.Bookings.GetByRoomId)
             .AddParam("@RoomId", SqlDbType.UniqueIdentifier, roomId);
 
-        return await ReadBookingsWithServicesAsync(command);
+        return await ReadBookingsWithServicesAsync(command, cancellationToken);
     }
 
-    public async Task<IEnumerable<Booking>> GetOverlappingAsync(Guid roomId, DateTime start, DateTime end)
+    public async Task<IEnumerable<Booking>> GetOverlappingAsync(Guid roomId, DateTime start, DateTime end, CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connectionFactory.CreateConnectionAsync();
+        await using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
         await using var command = connection
             .Procedure(SqlProcedures.Bookings.GetOverlapping)
             .AddParam("@RoomId", SqlDbType.UniqueIdentifier, roomId)
             .AddParam("@StartTime", SqlDbType.DateTime2, start)
             .AddParam("@EndTime", SqlDbType.DateTime2, end);
 
-        return await ReadBookingsWithServicesAsync(command);
+        return await ReadBookingsWithServicesAsync(command, cancellationToken);
     }
 
-    public async Task<IEnumerable<Booking>> GetByDateRangeAsync(DateTime from, DateTime to)
+    public async Task<IEnumerable<Booking>> GetByDateRangeAsync(DateTime from, DateTime to, CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connectionFactory.CreateConnectionAsync();
+        await using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
         await using var command = connection
             .Procedure(SqlProcedures.Bookings.GetByDateRange)
             .AddParam("@From", SqlDbType.DateTime2, from)
             .AddParam("@To", SqlDbType.DateTime2, to);
 
-        return await ReadBookingsWithServicesAsync(command);
+        return await ReadBookingsWithServicesAsync(command, cancellationToken);
     }
 
-    public async Task<Booking> AddAsync(Booking booking)
+    public async Task<Booking> AddAsync(Booking booking, CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connectionFactory.CreateConnectionAsync();
+        await using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
         await using var command = connection
             .Procedure(SqlProcedures.Bookings.Insert)
             .AddInputOutputParam("@Id", SqlDbType.UniqueIdentifier, booking.Id, out var idParam)
@@ -104,9 +104,9 @@ public class SqlBookingRepository : IBookingRepository
 
         try
         {
-            await command.ExecuteNonQueryAsync();
+            await command.ExecuteNonQueryAsync(cancellationToken);
         }
-        catch (SqlException ex) when (ex.Number == 50001)
+        catch (SqlException ex) when (ex.Number == SqlErrorCodes.BookingConflict)
         {
             throw new BookingConflictException(booking.RoomId, booking.StartTime, booking.EndTime);
         }
@@ -117,22 +117,22 @@ public class SqlBookingRepository : IBookingRepository
         return booking;
     }
 
-    private async Task<List<Booking>> ReadBookingsWithServicesAsync(SqlCommand command)
+    private async Task<List<Booking>> ReadBookingsWithServicesAsync(SqlCommand command, CancellationToken cancellationToken)
     {
-        await using var reader = await command.ExecuteReaderAsync();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
         var bookings = new Dictionary<Guid, Booking>();
 
-        while (await reader.ReadAsync())
+        while (await reader.ReadAsync(cancellationToken))
         {
             var entity = MapBookingEntity(reader);
             var booking = _mapper.Map<Booking>(entity);
             bookings[booking.Id] = booking;
         }
 
-        if (await reader.NextResultAsync())
+        if (await reader.NextResultAsync(cancellationToken))
         {
-            while (await reader.ReadAsync())
+            while (await reader.ReadAsync(cancellationToken))
             {
                 var bookingId = reader.Get<Guid>("BookingId");
                 var serviceId = reader.Get<Guid>("ServiceId");
