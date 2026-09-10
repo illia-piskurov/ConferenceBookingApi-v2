@@ -16,18 +16,18 @@ public class SqlReportRepository : IReportRepository
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<IReadOnlyList<DailyRevenue>> GetRevenueByDayAsync(DateTime from, DateTime to)
+    public async Task<IReadOnlyList<DailyRevenue>> GetRevenueByDayAsync(DateTime from, DateTime to, CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connectionFactory.CreateConnectionAsync();
+        await using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
         await using var command = connection
             .Procedure(SqlProcedures.Reports.GetRevenue)
             .AddParam("@From", SqlDbType.DateTime2, from)
             .AddParam("@To", SqlDbType.DateTime2, to);
 
-        await using var reader = await command.ExecuteReaderAsync();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
         var result = new List<DailyRevenue>();
-        while (await reader.ReadAsync())
+        while (await reader.ReadAsync(cancellationToken))
         {
             result.Add(new DailyRevenue
             {
@@ -40,15 +40,15 @@ public class SqlReportRepository : IReportRepository
         return result;
     }
 
-    public async Task<IEnumerable<RoomPopularity>> GetRoomPopularityAsync()
+    public async Task<IEnumerable<RoomPopularity>> GetRoomPopularityAsync(CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connectionFactory.CreateConnectionAsync();
+        await using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
         await using var command = connection.Procedure(SqlProcedures.Reports.GetRoomPopularity);
 
-        await using var reader = await command.ExecuteReaderAsync();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
         var result = new List<RoomPopularity>();
-        while (await reader.ReadAsync())
+        while (await reader.ReadAsync(cancellationToken))
         {
             result.Add(new RoomPopularity
             {
@@ -63,18 +63,18 @@ public class SqlReportRepository : IReportRepository
         return result;
     }
 
-    public async Task<IEnumerable<RoomLoad>> GetRoomLoadRawAsync(DateTime from, DateTime to)
+    public async Task<IEnumerable<RoomLoad>> GetRoomLoadRawAsync(DateTime from, DateTime to, CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connectionFactory.CreateConnectionAsync();
+        await using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
         await using var command = connection
             .Procedure(SqlProcedures.Reports.GetRoomLoad)
             .AddParam("@From", SqlDbType.DateTime2, from)
             .AddParam("@To", SqlDbType.DateTime2, to);
 
-        await using var reader = await command.ExecuteReaderAsync();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
         var result = new List<RoomLoad>();
-        while (await reader.ReadAsync())
+        while (await reader.ReadAsync(cancellationToken))
         {
             result.Add(new RoomLoad
             {

@@ -6,6 +6,7 @@ namespace ConferenceBooking.Services.Web.Middleware;
 
 public class GlobalExceptionHandlerMiddleware
 {
+    private const int Status499ClientClosedRequest = 499;
     private readonly RequestDelegate _next;
     private readonly ILogger<GlobalExceptionHandlerMiddleware> _logger;
 
@@ -22,6 +23,22 @@ public class GlobalExceptionHandlerMiddleware
         {
             await _next(context);
         }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            _logger.LogInformation("Запит було скасовано клієнтом.");
+            if (!context.Response.HasStarted)
+            {
+                context.Response.StatusCode = Status499ClientClosedRequest;
+            }
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogWarning(ex, "Операцію було скасовано або минув час очікування.");
+            if (!context.Response.HasStarted)
+            {
+                await WriteErrorResponseAsync(context, StatusCodes.Status408RequestTimeout, "Час очікування запиту вичерпано.");
+            }
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Необроблена помилка: {Message}", ex.Message);
@@ -31,6 +48,9 @@ public class GlobalExceptionHandlerMiddleware
 
     private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
+        if (context.Response.HasStarted)
+            return;
+
         var (statusCode, message) = exception switch
         {
             RoomNotFoundException ex          => (HttpStatusCode.NotFound, ex.Message),
@@ -42,12 +62,17 @@ public class GlobalExceptionHandlerMiddleware
                                                    "Внутрішня помилка сервера. Спробуйте пізніше.")
         };
 
-        context.Response.StatusCode = (int)statusCode;
+        await WriteErrorResponseAsync(context, (int)statusCode, message);
+    }
+
+    private static async Task WriteErrorResponseAsync(HttpContext context, int statusCode, string message)
+    {
+        context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";
 
         var response = new
         {
-            status = (int)statusCode,
+            status = statusCode,
             error = message,
             timestamp = DateTime.UtcNow
         };
